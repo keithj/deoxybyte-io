@@ -20,5 +20,5 @@
 (asdf:operate 'asdf:load-op :cl-system-utilities)
 (asdf:operate 'asdf:load-op :cl-io-utilities)
 
-(csu:document-system :cl-io-utilities)
+(su:document-system :cl-io-utilities)
 (quit)
