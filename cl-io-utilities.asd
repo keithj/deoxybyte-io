@@ -29,7 +29,6 @@
 (defsystem cl-io-utilities
     :name "cl-io-utilities"
     :author "Keith James"
-    :version "0.3.0"
     :licence "GPL v3"
     :in-order-to ((test-op (load-op :cl-io-utilities :cl-io-utilities-test)))
     :depends-on (:cl-gp-utilities :split-sequence :cl-fad :getopt
