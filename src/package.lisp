@@ -74,7 +74,8 @@
    #:close-process
    #:kill-process
    #:run
-   
+   #:runningp
+
    ;; Functions
    #:make-line-input-stream
    #:parse-float
@@ -118,7 +119,7 @@
    #:rsh-directories-exist-p
    #:rsh-make-directory
    #:rsh-ensure-directories-exist
-   
+
    ;; Macros
    #:define-line-parser
    #:with-li-stream
