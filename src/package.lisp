@@ -74,6 +74,7 @@
    #:close-process
    #:kill-process
    #:run
+   #:runningp
 
    ;; Functions
    #:make-line-input-stream
