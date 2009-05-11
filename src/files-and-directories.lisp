@@ -23,7 +23,11 @@
 (defmacro with-tmp-directory ((dir &key (tmpdir *default-tmpdir*) (basename "")
                                    (if-exists :error) (mode 511))
                               &body body)
-  `(let ((,dir (make-tmp-directory :tmpdir ,tmpdir :basename ,basename
+  "Executes BODY with DIR bound to a temporary directory that has been
+created with the MAKE-TMP-DIRECTORY function. The temporary directory
+is deleted afterwards."
+  `(let ((,dir (make-tmp-directory :tmpdir ,tmpdir :basename
+                                   ,basename
                                    :if-exists ,if-exists :mode ,mode)))
     (unwind-protect
          (progn
