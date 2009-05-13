@@ -24,7 +24,7 @@
   `(let ((,argv (get-system-argv)))
     ,@body))
 
-(defmacro with-backtrace ((&key quit error-file) &body body)
+(defmacro with-backtrace ((&key quit error-status error-file) &body body)
   `(handler-bind
     ((error (lambda (condition)
               (format *error-output* "~a~%" condition)
@@ -36,14 +36,15 @@
                      (print-backtrace condition stream))
                    '(print-backtrace condition *error-output*))
               ,(when quit
-                     '(quit-lisp)))))
+                     `(quit-lisp :status ,error-status)))))
     ,@body))
 
-(defmacro with-cli ((argv &key quit error-file) &body body)
-  `(with-backtrace (:quit ,quit ,@(when error-file
-                                        `(:error-file ,error-file)))
+(defmacro with-cli ((argv &key quit error-status error-file) &body body)
+  `(with-backtrace (:quit ,quit :error-status ,error-status
+                    ,@(when error-file
+                            `(:error-file ,error-file)))
     (with-argv ,argv
-          ,@body)))
+      ,@body)))
 
 #+:sbcl
 (defun get-system-argv ()
@@ -74,12 +75,12 @@
   (error "Not implemented on ~a" (lisp-implementation-type)))
 
 #+:sbcl
-(defun quit-lisp ()
-  (sb-ext:quit))
+(defun quit-lisp (&key (status 0))
+  (sb-ext:quit :unix-status status))
 
 #+:lispworks
-(defun quit-lisp ()
-  (lw:quit))
+(defun quit-lisp (&key (status 0))
+  (lw:quit :status status))
 
 #-(or :sbcl :lispworks)
 (defun quit-lisp ()
