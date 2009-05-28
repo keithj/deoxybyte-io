@@ -40,6 +40,7 @@
               :components ((:file "package")
                            (:file "conditions")
                            (:file "parse-float")
+                           (:file "binary-operations")
                            (:file "streams")
                            (:file "line-input-stream")
                            (:file "command-line-interface")

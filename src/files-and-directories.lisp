@@ -62,7 +62,8 @@ of PATHSPEC."
 exist. Returns the pathname of FILESPEC."
   (with-open-file (stream filespec :direction :output
                    :if-does-not-exist :create
-                   :if-exists nil))
+                   :if-exists nil)
+    (declare (ignore stream)))
   (pathname filespec))
 
 (defun make-tmp-pathname (&key (tmpdir *default-tmpdir*) (basename "") type)

@@ -23,6 +23,7 @@
   (:export
    ;; Specials
    #:*empty-field*
+   #:*default-tmpdir*
    #:*default-remote-host*
    #:*remote-pathname-defaults*
 
@@ -39,10 +40,11 @@
    #:non-zero-exit-error
 
    #:general-parse-error
+   #:malformed-file-error
    #:malformed-record-error
    #:malformed-field-error
    #:record-validation-error
-   #:record-field-error
+   #:field-validation-error
 
    ;; Classes
    #:line-input-stream
@@ -94,6 +96,7 @@
    #:cli-arg-type
    #:cli-arg-parser
    #:cli-arg-value
+   #:print-backtrace
    #:quit-lisp
 
    #:absolute-pathname-p
@@ -120,10 +123,42 @@
    #:rsh-make-directory
    #:rsh-ensure-directories-exist
 
+   #:encode-int64le
+   #:encode-int32le
+   #:encode-int16le
+   #:encode-int8le
+
+   #:decode-uint64le
+   #:decode-uint32le
+   #:decode-uint16le
+   #:decode-uint8le
+
+   #:decode-int64le
+   #:decode-int32le
+   #:decode-int16le
+   #:decode-int8le
+
+   #:encode-int64be
+   #:encode-int32be
+   #:encode-int16be
+   #:encode-int8be
+
+   #:decode-uint64be
+   #:decode-uint32be
+   #:decode-uint16be
+   #:decode-uint8be
+
+   #:decode-int64be
+   #:decode-int32be
+   #:decode-int16be
+   #:decode-int8be
+
    ;; Macros
    #:define-line-parser
    #:with-li-stream
    #:with-ascii-li-stream
    #:with-cli
    #:with-argv
-   #:with-backtrace))
+   #:with-backtrace
+   #:define-binary-encoder
+   #:define-binary-decoder))

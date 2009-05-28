@@ -54,7 +54,11 @@
 (defun get-system-argv ()
   (rest *line-arguments-list*))
 
-#-(or :sbcl :lispworks)
+#+:ccl
+(defun get-system-argv ()
+  (rest ccl:*command-line-argument-list*))
+
+#-(or :sbcl :lispworks :ccl)
 (defun get-system-argv ()
   (error "Not implemented on ~a" (lisp-implementation-type)))
 
@@ -70,7 +74,13 @@
     (dbg:with-debugger-stack ()
       (dbg:bug-backtrace nil))))
 
-#-(or :sbcl :lispworks)
+#+:ccl
+(defun print-backtrace (condition stream)
+  (declare (ignore condition))
+  (let ((*debug-io* stream))
+    (ccl:print-call-history :count 20 :detailed-p nil)))
+
+#-(or :sbcl :lispworks :ccl)
 (defun print-backtrace (condition)
   (error "Not implemented on ~a" (lisp-implementation-type)))
 
@@ -82,7 +92,11 @@
 (defun quit-lisp (&key (status 0))
   (lw:quit :status status))
 
-#-(or :sbcl :lispworks)
+#+:ccl
+(defun quit-lisp (&key (status 0))
+  (ccl:quit status))
+
+#-(or :sbcl :lispworks :ccl)
 (defun quit-lisp ()
   (error "Not implemented on ~a" (lisp-implementation-type)))
 

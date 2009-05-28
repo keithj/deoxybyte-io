@@ -105,6 +105,17 @@ supplied."))
                      (text-of condition))))
   (:documentation "The parent type of all parse error conditions."))
 
+(define-condition malformed-file-error (general-parse-error)
+  ((file :initform nil
+         :initarg :file
+         :reader file-of
+         :documentation "The malformed file."))
+  (:report (lambda (condition stream)
+             (format stream "Malformed file error~@[: ~a~]"
+                     (text-of condition))))
+  (:documentation "An error that is raised when a file is malformed
+for any reason."))
+
 (define-condition malformed-record-error (general-parse-error)
   ((record :initform nil
            :initarg :record
