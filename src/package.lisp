@@ -153,6 +153,18 @@
    #:decode-int16be
    #:decode-int8be
 
+   #:encode-float64le
+   #:encode-float32le
+
+   #:decode-float64le
+   #:decode-float32le
+
+   #:encode-float64le
+   #:encode-float32be
+
+   #:decode-float64le
+   #:decode-float32be
+
    ;; Macros
    #:define-line-parser
    #:with-li-stream
@@ -160,5 +172,5 @@
    #:with-cli
    #:with-argv
    #:with-backtrace
-   #:define-binary-encoder
-   #:define-binary-decoder))
+   #:define-integer-encoder
+   #:define-integer-decoder))

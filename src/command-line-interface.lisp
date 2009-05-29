@@ -21,10 +21,21 @@
   "The separator character used in multi-value arguments.")
 
 (defmacro with-argv (argv &body body)
+  "Executes BODY with ARGV bound to system argv list."
   `(let ((,argv (get-system-argv)))
     ,@body))
 
 (defmacro with-backtrace ((&key quit error-status error-file) &body body)
+  "Executes BODY with an error handler that prints a stack trace when
+an error is encountered.
+
+Key:
+
+- quit (boolean): If T, quit Lisp after printing the stack trace.
+- error-status (integer): The exit code with which to quit Lisp.
+- error-file (filespec): A pathname designator for a file to which the
+  stack trace will be written, instead of printing it to
+  *ERROR-OUTPUT*."
   `(handler-bind
     ((error (lambda (condition)
               (format *error-output* "~a~%" condition)
@@ -40,6 +51,8 @@
     ,@body))
 
 (defmacro with-cli ((argv &key quit error-status error-file) &body body)
+  "Executes BODY within the combined environments of {defmacro WITH-ARGV}
+and {defmacro WITH-BACKTRACE} ."
   `(with-backtrace (:quit ,quit :error-status ,error-status
                     ,@(when error-file
                             `(:error-file ,error-file)))

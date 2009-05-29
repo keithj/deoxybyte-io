@@ -17,11 +17,11 @@
 
 (in-package :cl-io-utilities)
 
-(defmacro define-binary-encoder (name &key (bytes 1) (order :little-endian))
-  "Defines a function NAME with one mandatory argument, a simple-array
-of unsigned-byte 8, and one optional argument, a fixnum index in that
-array that defaults to 0. The function returns the Lisp integer whose
-value is given by the bytes at that index in the byte array.
+(defmacro define-integer-encoder (name &key (bytes 1) (order :little-endian))
+  "Defines a function NAME with two mandatory arguments, an integer
+and a simple-array of unsigned-byte 8, and one optional argument, a
+fixnum index in that array that defaults to 0. The function returns
+the buffer containing the encoded integer.
 
 Key:
 
@@ -42,6 +42,9 @@ Key:
     `(progn
       (declaim (inline ,name))
       (defun ,name (value buffer &optional (index 0))
+        ,(format nil (txt "Encodes a ~a byteinteger as consecutive bytes"
+                          "in BUFFER, in ~a byte order, starting at INDEX.")
+                 bytes (string-downcase (symbol-name order)))
         ;; (declare (optimize (speed 3) (safety 1)))
         (declare (type (simple-array (unsigned-byte 8) (*)) buffer)
                  (type array-index index))
@@ -52,7 +55,7 @@ Key:
                             (ldb (byte 8 ,shift) value)))
         buffer))))
 
-(defmacro define-binary-decoder (name &key (bytes 1) (order :little-endian)
+(defmacro define-integer-decoder (name &key (bytes 1) (order :little-endian)
                                  signed)
   "Defines a function NAME with one mandatory argument, a simple-array
 of unsigned-byte 8, and one optional argument, a fixnum index in that
@@ -82,10 +85,10 @@ Key:
     `(progn
       (declaim (inline ,name))
       (defun ,name (buffer &optional (index 0))
-        ,(format nil (txt "Decodes ~:[an unsigned~;a signed~] ~a byte ~a"
+        ,(format nil (txt "Decodes ~:[an unsigned~;a signed~] ~a byte"
                           "integer stored as consecutive bytes in BUFFER,"
-                          "starting at INDEX.") signed bytes
-                          (string-downcase (symbol-name order)))
+                          "in ~a byte order, starting at INDEX.")
+                 signed bytes (string-downcase (symbol-name order)))
         ;; (declare (optimize (speed 3) (safety 1)))
         (declare (type (simple-array (unsigned-byte 8) (*)) buffer)
                  (type array-index index))
@@ -100,32 +103,102 @@ Key:
                   value)
                'value))))))
 
-(define-binary-encoder encode-int64le :bytes 8 :order :little-endian)
-(define-binary-encoder encode-int32le :bytes 4 :order :little-endian)
-(define-binary-encoder encode-int16le :bytes 2 :order :little-endian)
-(define-binary-encoder encode-int8le :bytes 1 :order :little-endian)
+(defmacro define-float-encoder (name &key (bytes 4) (order :little-endian))
+  "Defines a function NAME with two mandatory arguments, a float and a
+simple-array of unsigned-byte 8, and one optional argument, a fixnum
+index in that array that defaults to 0. The function returns the
+buffer containing the encoded float.
 
-(define-binary-decoder decode-uint64le :bytes 8 :order :little-endian)
-(define-binary-decoder decode-uint32le :bytes 4 :order :little-endian)
-(define-binary-decoder decode-uint16le :bytes 2 :order :little-endian)
-(define-binary-decoder decode-uint8le :bytes 1 :order :little-endian)
+Key:
 
-(define-binary-decoder decode-int64le :bytes 8 :order :little-endian :signed t)
-(define-binary-decoder decode-int32le :bytes 4 :order :little-endian :signed t)
-(define-binary-decoder decode-int16le :bytes 2 :order :little-endian :signed t)
-(define-binary-decoder decode-int8le :bytes 1 :order :little-endian :signed t)
+- bytes (fixnum): the number of bytes that comprise the number.
+- order (sumbol): the byte order of the array, may be one
+  of :little-endian or :big-endian ( :network-byte-order may be used
+  as a synonym for :big-endian )."
+  (let ((int-encoder (ecase order
+                       (:little-endian (ecase bytes
+                                         (4 'encode-int32le)
+                                         (8 'encode-int64le)))
+                       (:big-endian (ecase bytes
+                                      (4 'encode-int32be)
+                                      (8 'encode-int64be)))))
+        (float-encoder (ecase bytes
+                         (4 'ieee-floats:encode-float32)
+                         (8 'ieee-floats:encode-float64))))
+    `(progn
+       (defun ,name (value buffer &optional (index 0))
+          ,(format nil (txt "Encodes ~a byte float as consecutive bytes in"
+                            "BUFFER, in ~a byte order, starting at INDEX.")
+                   bytes (string-downcase (symbol-name order)))
+         (,int-encoder (,float-encoder value) buffer index)))))
 
-(define-binary-encoder encode-int64be :bytes 8 :order :big-endian)
-(define-binary-encoder encode-int32be :bytes 4 :order :big-endian)
-(define-binary-encoder encode-int16be :bytes 2 :order :big-endian)
-(define-binary-encoder encode-int8be :bytes 1 :order :big-endian)
+(defmacro define-float-decoder (name &key (bytes 4) (order :little-endian))
+  "Defines a function NAME with one mandatory argument, a simple-array
+of unsigned-byte 8, and one optional argument, a fixnum index in that
+array that defaults to 0. The function returns the Lisp float whose
+value is given by the bytes at that index in the byte array.
 
-(define-binary-decoder decode-uint64be :bytes 8 :order :big-endian)
-(define-binary-decoder decode-uint32be :bytes 4 :order :big-endian)
-(define-binary-decoder decode-uint16be :bytes 2 :order :big-endian)
-(define-binary-decoder decode-uint8be :bytes 1 :order :big-endian)
+Key:
 
-(define-binary-decoder decode-int64be :bytes 8 :order :big-endian :signed t)
-(define-binary-decoder decode-int32be :bytes 4 :order :big-endian :signed t)
-(define-binary-decoder decode-int16be :bytes 2 :order :big-endian :signed t)
-(define-binary-decoder decode-int8be :bytes 1 :order :big-endian :signed t)
+- bytes (fixnum): the number of bytes that comprise the number.
+- order (sumbol): the byte order of the array, may be one
+  of :little-endian or :big-endian ( :network-byte-order may be used
+  as a synonym for :big-endian )."
+  (let ((int-decoder (ecase order
+                       (:little-endian (ecase bytes
+                                         (4 'decode-uint32le)
+                                         (8 'decode-uint64le)))
+                       (:big-endian (ecase bytes
+                                      (4 'decode-uint32be)
+                                      (8 'decode-uint64be)))))
+        (float-decoder (ecase bytes
+                         (4 'ieee-floats:decode-float32)
+                         (8 'ieee-floats:decode-float64))))
+    `(progn
+       (defun ,name (buffer &optional (index 0))
+         ,(format nil (txt "Decodes ~a byte float stored as consecutive bytes"
+                           "in BUFFER, in ~a byte order, starting at INDEX.")
+                  bytes (string-downcase (symbol-name order)))
+         (,float-decoder (,int-decoder buffer index))))))
+
+(define-integer-encoder encode-int64le :bytes 8 :order :little-endian)
+(define-integer-encoder encode-int32le :bytes 4 :order :little-endian)
+(define-integer-encoder encode-int16le :bytes 2 :order :little-endian)
+(define-integer-encoder encode-int8le :bytes 1 :order :little-endian)
+
+(define-integer-decoder decode-uint64le :bytes 8 :order :little-endian)
+(define-integer-decoder decode-uint32le :bytes 4 :order :little-endian)
+(define-integer-decoder decode-uint16le :bytes 2 :order :little-endian)
+(define-integer-decoder decode-uint8le :bytes 1 :order :little-endian)
+
+(define-integer-decoder decode-int64le :bytes 8 :order :little-endian :signed t)
+(define-integer-decoder decode-int32le :bytes 4 :order :little-endian :signed t)
+(define-integer-decoder decode-int16le :bytes 2 :order :little-endian :signed t)
+(define-integer-decoder decode-int8le :bytes 1 :order :little-endian :signed t)
+
+(define-integer-encoder encode-int64be :bytes 8 :order :big-endian)
+(define-integer-encoder encode-int32be :bytes 4 :order :big-endian)
+(define-integer-encoder encode-int16be :bytes 2 :order :big-endian)
+(define-integer-encoder encode-int8be :bytes 1 :order :big-endian)
+
+(define-integer-decoder decode-uint64be :bytes 8 :order :big-endian)
+(define-integer-decoder decode-uint32be :bytes 4 :order :big-endian)
+(define-integer-decoder decode-uint16be :bytes 2 :order :big-endian)
+(define-integer-decoder decode-uint8be :bytes 1 :order :big-endian)
+
+(define-integer-decoder decode-int64be :bytes 8 :order :big-endian :signed t)
+(define-integer-decoder decode-int32be :bytes 4 :order :big-endian :signed t)
+(define-integer-decoder decode-int16be :bytes 2 :order :big-endian :signed t)
+(define-integer-decoder decode-int8be :bytes 1 :order :big-endian :signed t)
+
+(define-float-encoder encode-float64le :bytes 8 :order :little-endian)
+(define-float-encoder encode-float32le :bytes 4 :order :little-endian)
+
+(define-float-encoder encode-float64be :bytes 8 :order :big-endian)
+(define-float-encoder encode-float32be :bytes 4 :order :big-endian)
+
+(define-float-decoder decode-float64le :bytes 8 :order :little-endian)
+(define-float-decoder decode-float32le :bytes 4 :order :little-endian)
+
+(define-float-decoder decode-float64be :bytes 8 :order :big-endian)
+(define-float-decoder decode-float32be :bytes 4 :order :big-endian)
