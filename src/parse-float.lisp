@@ -89,7 +89,7 @@
 ; (in-package "LISP")
 ; (export '(parse-float))
 
-(in-package :cl-io-utilities)
+(in-package :uk.co.deoxybyte-io)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
 

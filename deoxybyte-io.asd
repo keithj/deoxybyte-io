@@ -18,20 +18,20 @@
 (in-package :cl-user)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (when (asdf:find-system :cl-system-utilities nil)
-    (asdf:operate 'asdf:load-op :cl-system-utilities)))
+  (when (asdf:find-system :deoxybyte-systems nil)
+    (asdf:operate 'asdf:load-op :deoxybyte-systems)))
 
-(defpackage #:cl-io-utilities-system
-  (:use :common-lisp :asdf :cl-system-utilities))
+(defpackage #:uk.co.deoxybyte-io-system
+  (:use :common-lisp :asdf :deoxybyte-systems))
 
-(in-package #:cl-io-utilities-system)
+(in-package #:uk.co.deoxybyte-io-system)
 
-(defsystem cl-io-utilities
-    :name "cl-io-utilities"
+(defsystem deoxybyte-io
+    :name "deoxybyte-io"
     :author "Keith James"
     :licence "GPL v3"
-    :in-order-to ((test-op (load-op :cl-io-utilities :cl-io-utilities-test)))
-    :depends-on (:cl-gp-utilities :split-sequence :cl-fad :getopt
+    :in-order-to ((test-op (load-op :deoxybyte-io :deoxybyte-io-test)))
+    :depends-on (:deoxybyte-utilities :split-sequence :cl-fad :getopt
                  :trivial-gray-streams :ieee-floats)
     :components
     ((:module :core
@@ -56,8 +56,8 @@
                            (:file "gnuplot")
                            (:file "rsh"))
               :depends-on (:core))
-     (:lift-test-config :cl-io-utilities-test
-                        :target-system :cl-io-utilities)
+     (:lift-test-config :deoxybyte-io-test
+                        :target-system :deoxybyte-io)
      (:cldoc-config :cl-io-utilities-doc
-                    :target-system :cl-io-utilities
-                    :pathname "doc/html")))
+                    :target-system :deoxybyte-io
+                    :pathname "doc/html/")))

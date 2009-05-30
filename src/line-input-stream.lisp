@@ -15,7 +15,7 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
-(in-package :cl-io-utilities)
+(in-package :uk.co.deoxybyte-io)
 
 (defconstant +byte-buffer-size+ 8192
   "Buffer size for {defclass binary-line-input-stream} internal

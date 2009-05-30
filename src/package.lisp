@@ -15,10 +15,11 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
-(defpackage #:cl-io-utilities
-  (:use #:common-lisp #:cl-gp-utilities #:trivial-gray-streams)
-  (:nicknames #:iou)
-  (:documentation "IO utilities.")
+(defpackage #:uk.co.deoxybyte-io
+  (:use #:common-lisp #:uk.co.deoxybyte-utilities #:trivial-gray-streams)
+  (:nicknames
+   #:deoxybyte-io
+   #:dxi)
   (:shadow #:type-of)
   (:export
    ;; Specials
@@ -173,4 +174,13 @@
    #:with-argv
    #:with-backtrace
    #:define-integer-encoder
-   #:define-integer-decoder))
+   #:define-integer-decoder)
+  (:documentation "The deoxybyte-io package is a selection of utility
+  code focused on transfer of data between Lisp and its
+  environment. It includes:
+
+- File and directory utilities
+- Text and binary data parsing functions and conditions
+- Stream classes and methods
+- Command line interface utilities
+- Wrappers for running external programs"))

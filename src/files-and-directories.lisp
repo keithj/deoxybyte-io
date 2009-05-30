@@ -15,7 +15,7 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
-(in-package :cl-io-utilities)
+(in-package :uk.co.deoxybyte-io)
 
 (defparameter *default-tmpdir* "/tmp/"
   "The default temporary file directory.")

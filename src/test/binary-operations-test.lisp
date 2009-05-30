@@ -15,7 +15,7 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
-(in-package :cl-io-utilities-test)
+(in-package :uk.co.deoxybyte-io-test)
 
 (defun make-byte-array (bytes)
   (make-array (length bytes) :element-type '(unsigned-byte 8)
@@ -33,69 +33,69 @@
                          (random max))))
                 (= (funcall decoder (funcall encoder x bytes)))))))
 
-(addtest (cl-io-utilities-tests) decode-unsigned-int-le/1
+(addtest (deoxybyte-io-tests) decode-unsigned-int-le/1
   (let ((bytes (make-byte-array '(#x78 #x56 #x34 #x12))))
     (ensure (= #x12345678 (decode-uint32le bytes 0)))
     (ensure (= #x5678 (decode-uint16le bytes 0)))
     (ensure (= #x1234 (decode-uint16le bytes 2)))))
 
-(addtest (cl-io-utilities-tests) decode-unsigned-int-be/1
+(addtest (deoxybyte-io-tests) decode-unsigned-int-be/1
   (let ((bytes (make-byte-array '(#x12 #x34 #x56 #x78))))
     (ensure (= #x12345678 (decode-uint32be bytes 0)))
     (ensure (= #x1234 (decode-uint16be bytes 0)))
     (ensure (= #x5678 (decode-uint16be bytes 2)))))
 
-(addtest (cl-io-utilities-tests) decode-signed-int-le/1
+(addtest (deoxybyte-io-tests) decode-signed-int-le/1
   (let ((bytes (make-byte-array '(#xf8 #xff #xff #xff))))
     (ensure (= -8 (decode-int32le bytes 0)))
     (ensure (= -8 (decode-int16le bytes 0)))
     (ensure (= -1 (decode-int16le bytes 2)))))
 
-(addtest (cl-io-utilities-tests) decode-signed-int-be/1
+(addtest (deoxybyte-io-tests) decode-signed-int-be/1
   (let ((bytes (make-byte-array '(#xff #xff #xff #xf8))))
     (ensure (= -8 (decode-int32be bytes 0)))
     (ensure (= -1 (decode-int16be bytes 0)))
     (ensure (= -8 (decode-int16be bytes 2)))))
 
-(addtest (cl-io-utilities-tests) round-trip-unsigned-int64-le
+(addtest (deoxybyte-io-tests) round-trip-unsigned-int64-le
   (ensure (test-round-trip 8 #'encode-int64le #'decode-int64le)))
 
-(addtest (cl-io-utilities-tests) round-trip-signed-int64-le
+(addtest (deoxybyte-io-tests) round-trip-signed-int64-le
   (ensure (test-round-trip 8 #'encode-int64le #'decode-int64le t)))
 
-(addtest (cl-io-utilities-tests) round-trip-unsigned-int32-le
+(addtest (deoxybyte-io-tests) round-trip-unsigned-int32-le
   (ensure (test-round-trip 4 #'encode-int32le #'decode-int32le)))
 
-(addtest (cl-io-utilities-tests) round-trip-signed-int32-le
+(addtest (deoxybyte-io-tests) round-trip-signed-int32-le
   (ensure (test-round-trip 4 #'encode-int32le #'decode-int32le t)))
 
-(addtest (cl-io-utilities-tests) round-trip-unsigned-int16-le
+(addtest (deoxybyte-io-tests) round-trip-unsigned-int16-le
   (ensure (test-round-trip 2 #'encode-int16le #'decode-int16le)))
 
-(addtest (cl-io-utilities-tests) round-trip-signed-int16-le
+(addtest (deoxybyte-io-tests) round-trip-signed-int16-le
   (ensure (test-round-trip 2 #'encode-int16le #'decode-int16le t)))
 
-(addtest (cl-io-utilities-tests) round-trip-signed-int8-le
+(addtest (deoxybyte-io-tests) round-trip-signed-int8-le
   (ensure (test-round-trip 1 #'encode-int8le #'decode-int8le t)))
 
 
-(addtest (cl-io-utilities-tests) round-trip-unsigned-int64-be
+(addtest (deoxybyte-io-tests) round-trip-unsigned-int64-be
   (ensure (test-round-trip 8 #'encode-int64be #'decode-int64be)))
 
-(addtest (cl-io-utilities-tests) round-trip-signed-int64-be
+(addtest (deoxybyte-io-tests) round-trip-signed-int64-be
   (ensure (test-round-trip 8 #'encode-int64be #'decode-int64be t)))
 
-(addtest (cl-io-utilities-tests) round-trip-unsigned-int32-be
+(addtest (deoxybyte-io-tests) round-trip-unsigned-int32-be
   (ensure (test-round-trip 4 #'encode-int32be #'decode-int32be)))
 
-(addtest (cl-io-utilities-tests) round-trip-signed-int32-be
+(addtest (deoxybyte-io-tests) round-trip-signed-int32-be
   (ensure (test-round-trip 4 #'encode-int32be #'decode-int32be t)))
 
-(addtest (cl-io-utilities-tests) round-trip-unsigned-int16-be
+(addtest (deoxybyte-io-tests) round-trip-unsigned-int16-be
   (ensure (test-round-trip 2 #'encode-int16be #'decode-int16be)))
 
-(addtest (cl-io-utilities-tests) round-trip-signed-int16-be
+(addtest (deoxybyte-io-tests) round-trip-signed-int16-be
   (ensure (test-round-trip 2 #'encode-int16be #'decode-int16be t)))
 
-(addtest (cl-io-utilities-tests) round-trip-signed-int8-be
+(addtest (deoxybyte-io-tests) round-trip-signed-int8-be
   (ensure (test-round-trip 1 #'encode-int8be #'decode-int8be t)))

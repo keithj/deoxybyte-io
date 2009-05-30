@@ -15,7 +15,7 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
-(in-package :cl-io-utilities)
+(in-package :uk.co.deoxybyte-io)
 
 (defmacro define-integer-encoder (name &key (bytes 1) (order :little-endian))
   "Defines a function NAME with two mandatory arguments, an integer

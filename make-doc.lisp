@@ -17,8 +17,8 @@
 
 (in-package :cl-user)
 
-(asdf:operate 'asdf:load-op :cl-system-utilities)
-(asdf:operate 'asdf:load-op :cl-io-utilities)
+(asdf:operate 'asdf:load-op :deoxybyte-systems)
+(asdf:operate 'asdf:load-op :deoxybyte-io)
 
-(su:document-system :cl-io-utilities)
+(dxs:document-system :deoxybyte-io)
 (quit)

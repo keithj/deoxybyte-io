@@ -15,9 +15,9 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
-(in-package :cl-io-utilities-test)
+(in-package :uk.co.deoxybyte-io-test)
 
-(deftestsuite cl-io-utilities-tests ()
+(deftestsuite deoxybyte-io-tests ()
   ())
 
 (defvar *png-signature* '(137 80 78 71 13 10 26 10)
@@ -51,7 +51,7 @@
 ;; sb-gray:stream-listen stream
 ;; sb-gray:stream-unread-char stream character
 
-(addtest (cl-io-utilities-tests) gray-common/1
+(addtest (deoxybyte-io-tests) gray-common/1
   (with-open-file (stream (merge-pathnames "data/test1.txt")
                    :direction :input
                    :element-type 'base-char
@@ -65,7 +65,7 @@
       (ensure-error
        (stream-read-line s)))))
 
-(addtest (cl-io-utilities-tests) gray-common/2
+(addtest (deoxybyte-io-tests) gray-common/2
   (with-open-file (stream (merge-pathnames "data/test1.txt")
                    :direction :input
                    :element-type '(unsigned-byte 8))
@@ -78,7 +78,7 @@
       (ensure-error
        (stream-read-line s)))))
 
-(addtest (cl-io-utilities-tests) gray-input/1
+(addtest (deoxybyte-io-tests) gray-input/1
   (with-open-file (stream (merge-pathnames "data/test1.txt")
                    :direction :input
                    :element-type 'base-char
@@ -87,13 +87,13 @@
           (b (make-array 10 :element-type 'character)))
       ;; stream-clear-input should empty the line buffer
       (push-line s "aaaa")
-      (ensure (iou::line-stack-of s))
+      (ensure (deoxybyte-io::line-stack-of s))
       (ensure-null (stream-clear-input s))
-      (ensure (not (iou::line-stack-of s)))
+      (ensure (not (deoxybyte-io::line-stack-of s)))
       (ensure (= 10 (stream-read-sequence s b 0 (length b))))
       (ensure (string= "abcdefghij" b)))))
 
-(addtest (cl-io-utilities-tests) gray-input/2
+(addtest (deoxybyte-io-tests) gray-input/2
   (with-open-file (stream (merge-pathnames "data/test1.txt")
                    :direction :input
                    :element-type '(unsigned-byte 8))
@@ -103,7 +103,7 @@
       (ensure (= 10 (stream-read-sequence s b 0 (length b))))
       (ensure (equalp (as-bytes "abcdefghij") b)))))
 
-(addtest (cl-io-utilities-tests) gray-binary/1
+(addtest (deoxybyte-io-tests) gray-binary/1
   (with-open-file (stream (merge-pathnames "data/test1.txt")
                    :direction :input
                    :element-type '(unsigned-byte 8))
@@ -112,7 +112,7 @@
       (loop for byte across line
            do (ensure (= byte (stream-read-byte s)))))))
 
-(addtest (cl-io-utilities-tests) gray-char/1
+(addtest (deoxybyte-io-tests) gray-char/1
   (with-open-file (stream (merge-pathnames "data/test1.txt")
                    :direction :input
                    :element-type 'base-char
@@ -124,7 +124,7 @@
       (loop for char across line
          do (ensure (char= char (stream-read-char s)))))))
 
-(addtest (cl-io-utilities-tests) stream-read-line/1
+(addtest (deoxybyte-io-tests) stream-read-line/1
   (with-open-file (stream (merge-pathnames "data/test1.txt")
                    :direction :input
                    :element-type 'base-char
@@ -140,7 +140,7 @@
         (ensure (eql :eof line2))
         (ensure missing-newline-p)))))
 
-(addtest (cl-io-utilities-tests) stream-read-line/2
+(addtest (deoxybyte-io-tests) stream-read-line/2
   (with-open-file (stream (merge-pathnames "data/test1.txt")
                    :direction :input
                    :element-type '(unsigned-byte 8))
@@ -155,7 +155,7 @@
         (ensure-same :eof bytes)
         (ensure missing-newline-p)))))
 
-(addtest (cl-io-utilities-tests) push-line/1
+(addtest (deoxybyte-io-tests) push-line/1
   (with-open-file (stream (merge-pathnames "data/test1.txt")
                    :direction :input
                    :element-type 'base-char
@@ -169,7 +169,7 @@
         (push-line s line2)
         (ensure (equalp line (stream-read-line s)))))))
 
-(addtest (cl-io-utilities-tests) push-line/2
+(addtest (deoxybyte-io-tests) push-line/2
   (with-open-file (stream (merge-pathnames "data/test1.txt")
                    :direction :input
                    :element-type '(unsigned-byte 8))
@@ -182,7 +182,7 @@
         (push-line s bytes)
         (ensure (equalp line (stream-read-line s)))))))
 
-(addtest (cl-io-utilities-tests) missing-newline-p/1
+(addtest (deoxybyte-io-tests) missing-newline-p/1
   (with-open-file (stream (merge-pathnames "data/test2.txt")
                    :direction :input
                    :element-type 'base-char
@@ -202,7 +202,7 @@
         (ensure (equalp (car (last lines)) line2))
         (ensure missing-newline-p)))))
 
-(addtest (cl-io-utilities-tests) missing-newline-p/2
+(addtest (deoxybyte-io-tests) missing-newline-p/2
   (with-open-file (stream (merge-pathnames "data/test2.txt")
                    :direction :input
                    :element-type '(unsigned-byte 8))
@@ -221,7 +221,7 @@
         (ensure (equalp (car (last lines)) bytes))
         (ensure missing-newline-p)))))
 
-(addtest (cl-io-utilities-tests) find-line/1
+(addtest (deoxybyte-io-tests) find-line/1
   (with-open-file (stream (merge-pathnames "data/test3.txt")
                    :direction :input
                    :element-type '(unsigned-byte 8))
@@ -265,7 +265,7 @@
         (ensure (not found))
         (ensure (= 5 line-count))))))
 
-(addtest (cl-io-utilities-tests) make-tmp-pathname/1
+(addtest (deoxybyte-io-tests) make-tmp-pathname/1
   ;; Test defaults
   (ensure (pathnamep (make-tmp-pathname)))
   (ensure (string= "/tmp/" (directory-namestring (make-tmp-pathname))))
@@ -285,10 +285,10 @@
   ;; Test error condition
   (let ((bad-dir "/this-directory-does-not-exist/"))
     (ensure (and (not (fad:directory-exists-p bad-dir))
-                 (ensure-condition gpu:invalid-argument-error
+                 (ensure-condition invalid-argument-error
                                    (make-tmp-pathname :tmpdir bad-dir))))))
 
-(addtest (cl-io-utilities-tests) make-tmp-directory/1
+(addtest (deoxybyte-io-tests) make-tmp-directory/1
   ;; Test defaults
   (let ((tmpdir (make-tmp-directory)))
     (unwind-protect
@@ -313,17 +313,17 @@
   ;; Test error conditions
   (let ((bad-dir "/this-directory-does-not-exist/"))
     (ensure (and (not (fad:directory-exists-p bad-dir))
-                 (ensure-condition gpu:invalid-argument-error
+                 (ensure-condition invalid-argument-error
                    (make-tmp-directory :tmpdir bad-dir))))))
 
-(addtest (cl-io-utilities-tests) ensure-file-exists/1
+(addtest (deoxybyte-io-tests) ensure-file-exists/1
   (let ((test-file (merge-pathnames "data/touch_test.txt")))
     (ensure (not (probe-file test-file)))
     (ensure-file-exists test-file)
     (ensure (probe-file test-file))
     (delete-file test-file)))
 
-(addtest (cl-io-utilities-tests) gnuplot/1
+(addtest (deoxybyte-io-tests) gnuplot/1
   (let* ((png-filespec (namestring (merge-pathnames "data/xy-plot.png")))
          (plotter (gpt:run-gnuplot))
          (x #(0 1 2 3 4 5 6 7 8 9))

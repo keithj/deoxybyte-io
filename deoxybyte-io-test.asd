@@ -15,13 +15,13 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
-(in-package #:cl-io-utilities-system)
+(in-package #:uk.co.deoxybyte-io-system)
 
-(defsystem cl-io-utilities-test
-  :depends-on (:cl-io-utilities)
-  :components ((:module :cl-io-utilities-test
+(defsystem deoxybyte-io-test
+  :depends-on (:deoxybyte-io)
+  :components ((:module :deoxybyte-io-test
                         :serial t
                         :pathname "src/test/"
                         :components ((:file "package")
-                                     (:file "cl-io-utilities-test")
+                                     (:file "deoxybyte-io-test")
                                      (:file "binary-operations-test")))))
