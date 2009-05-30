@@ -58,6 +58,6 @@
               :depends-on (:core))
      (:lift-test-config :deoxybyte-io-test
                         :target-system :deoxybyte-io)
-     (:cldoc-config :cl-io-utilities-doc
+     (:cldoc-config :deoxybyte-io-doc
                     :target-system :deoxybyte-io
                     :pathname "doc/html/")))
