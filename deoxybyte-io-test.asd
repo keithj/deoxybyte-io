@@ -15,7 +15,7 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
-(in-package #:uk.co.deoxybyte-io-system)
+(in-package :uk.co.deoxybyte-io-system)
 
 (defsystem deoxybyte-io-test
   :depends-on (:deoxybyte-io)

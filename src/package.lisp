@@ -15,8 +15,8 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
-(defpackage #:uk.co.deoxybyte-io
-  (:use #:common-lisp #:uk.co.deoxybyte-utilities #:trivial-gray-streams)
+(defpackage :uk.co.deoxybyte-io
+  (:use #:common-lisp #:trivial-gray-streams #:deoxybyte-utilities)
   (:nicknames
    #:deoxybyte-io
    #:dxi)
@@ -25,8 +25,6 @@
    ;; Specials
    #:*empty-field*
    #:*default-tmpdir*
-   #:*default-remote-host*
-   #:*remote-pathname-defaults*
 
    ;; Conditions
    #:io-error
@@ -38,7 +36,6 @@
    #:incompatible-argument
    #:unmatched-option
    #:unknown-option
-   #:non-zero-exit-error
 
    #:general-parse-error
    #:malformed-file-error
@@ -52,9 +49,6 @@
    #:character-line-input-stream
    #:binary-line-input-stream
    #:stream-filter-mixin
-
-   #:external-program
-   #:rsh
    
    ;; Generics
    #:push-line
@@ -64,20 +58,6 @@
    #:test-of
    #:record-of
    #:field-of
-
-   #:program-of
-   #:args-of
-   #:process-of
-   #:input-of
-   #:output-of
-   #:error-of
-   #:wait-for
-   #:status-of
-   #:exit-code-of
-   #:close-process
-   #:kill-process
-   #:run
-   #:runningp
 
    ;; Functions
    #:make-line-input-stream
@@ -112,17 +92,6 @@
    #:make-pathname-ext
 
    #:external-merge-sort
-
-   #:rsh-exec
-   #:host-of
-   #:merge-remote-pathnames
-   #:rsh-list-directory
-   #:rsh-file-exists-p
-   #:rsh-directory-exists-p
-   #:rsh-files-exist-p
-   #:rsh-directories-exist-p
-   #:rsh-make-directory
-   #:rsh-ensure-directories-exist
 
    #:encode-int64le
    #:encode-int32le
@@ -175,12 +144,11 @@
    #:with-backtrace
    #:define-integer-encoder
    #:define-integer-decoder)
-  (:documentation "The deoxybyte-io package is a selection of utility
+  (:documentation "The deoxybyte-io system is a selection of utility
   code focused on transfer of data between Lisp and its
   environment. It includes:
 
 - File and directory utilities
 - Text and binary data parsing functions and conditions
 - Stream classes and methods
-- Command line interface utilities
-- Wrappers for running external programs"))
+- Command line interface utilities"))

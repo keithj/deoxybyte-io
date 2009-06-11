@@ -264,7 +264,7 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
     (fill-buffer stream)))
 
 (defmethod read-chunks ((stream binary-line-input-stream))
-  (declare (optimize (speed 3) (debug 0) (safety 0)))
+  (declare (optimize (speed 3) (safety 0)))
   (let ((offset (offset-of stream))
         (num-bytes (num-bytes-of stream))
         (buffer (buffer-of stream)))

@@ -21,10 +21,10 @@
   (when (asdf:find-system :deoxybyte-systems nil)
     (asdf:operate 'asdf:load-op :deoxybyte-systems)))
 
-(defpackage #:uk.co.deoxybyte-io-system
+(defpackage :uk.co.deoxybyte-io-system
   (:use :common-lisp :asdf :deoxybyte-systems))
 
-(in-package #:uk.co.deoxybyte-io-system)
+(in-package :uk.co.deoxybyte-io-system)
 
 (defsystem deoxybyte-io
     :name "deoxybyte-io"
@@ -47,15 +47,6 @@
                            (:file "files-and-directories")
                            (:file "simple-table-parser")
                            (:file "external-merge-sort")))
-     (:module :external-programs
-              :serial t
-              :pathname "src/external-program/"
-              :components ((:file "package")
-                           (:file "external-program")
-                           (:file "conditions")
-                           (:file "gnuplot")
-                           (:file "rsh"))
-              :depends-on (:core))
      (:lift-test-config :deoxybyte-io-test
                         :target-system :deoxybyte-io)
      (:cldoc-config :deoxybyte-io-doc

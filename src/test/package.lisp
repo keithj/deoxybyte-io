@@ -15,7 +15,7 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
-(defpackage #:uk.co.deoxybyte-io-test
+(defpackage :uk.co.deoxybyte-io-test
   (:use #:common-lisp #:deoxybyte-io #:deoxybyte-utilities
         #:lift #:trivial-gray-streams)
   (:documentation "Deoxybyte IO tests.")
