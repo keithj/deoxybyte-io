@@ -1,6 +1,8 @@
 ;;;
 ;;; Copyright (C) 2008-2009 Keith James. All rights reserved.
 ;;;
+;;; This file is part of deoxybyte-io.
+;;;
 ;;; This program is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
 ;;; the Free Software Foundation, either version 3 of the License, or
@@ -73,10 +75,10 @@ those fields have acceptable values."
              (string-split-indices ,delimiter line)
            (declare (type list field-starts))
            (unless (= ,field-count (length field-starts))
-             (error 'malformed-record-error :text
-                    (format nil
-                            "invalid line: ~d fields instead of ~d: ~s."
-                            (length field-starts) ,field-count line)))
+             (error 'malformed-record-error
+                    :record line
+                    :text (format nil "invalid line: ~d fields instead of ~d"
+                                  (length field-starts) ,field-count)))
            (let ((parsed-fields
                   (loop
                      for name in (list ,@(mapcar (lambda (n)
@@ -104,16 +106,24 @@ those fields have acceptable values."
                         when (null (cdr result))
                         collect (car result))))
                (when failed-constraints
-                 (error 'record-validation-error :text
-                        (format nil "constraints ~a failed on line ~s."
-                                failed-constraints line))))
+                 (error 'record-validation-error
+                        :record line
+                        :text
+                        (format nil "constraints ~a failed"
+                                failed-constraints))))
              parsed-fields))))))
+
+(declaim (inline default-validator))
+(defun default-validator (value)
+  "The default validator always returns T."
+  (declare (ignore value))
+  t)
 
 (defun default-string-parser (field-name str &key (start 0) end
                               (null-str *empty-field*))
-  "Returns a string subsequence from simple-base-string record STR
-between START and END, or NIL if STR is STRING= to NULL-STR between
-START and END."
+  "Returns a string subsequence from simple-string record STR between
+START and END, or NIL if STR is STRING= to NULL-STR between START and
+END."
   (declare (optimize (speed 3)))
   (declare (type simple-string str null-str))
   (let ((end (or end (length str))))
@@ -122,9 +132,10 @@ START and END."
       (handler-case
           (subseq str start end)
         (parse-error (condition)
-          (error 'malformed-field-error :text
-                 (format nil "invalid ~a field ~a: ~a" field-name
-                         (subseq str start end) condition)))))))
+          (error 'malformed-field-error
+                 :field field-name
+                 :text (format nil "invalid field ~a: ~a"
+                               (subseq str start end) condition)))))))
 
 (defun default-integer-parser (field-name str &key (start 0) end
                                (null-str *empty-field*))
@@ -139,9 +150,10 @@ START and END."
       (handler-case
           (parse-integer str :start start :end end)
         (parse-error (condition)
-          (error 'malformed-field-error :text
-                 (format nil "invalid ~a field ~a: ~a" field-name
-                         (subseq str start end) condition)))))))
+          (error 'malformed-field-error
+                 :field field-name
+                 :text (format nil "invalid field ~a: ~a"
+                               (subseq str start end) condition)))))))
 
 (defun default-float-parser (field-name str &key (start 0) end
                              (null-str *empty-field*))
@@ -156,27 +168,28 @@ END."
       (handler-case
           (parse-float str :start start :end end)
         (parse-error (condition)
-          (error 'malformed-field-error :text
-                 (format nil "invalid ~a field ~a: ~a" field-name
-                         (subseq str start end) condition)))))))
+          (error 'malformed-field-error
+                 :field field-name
+                 :text (format nil "invalid field ~a: ~a"
+                               (subseq str start end) condition)))))))
   
 (defun parse-field (field-name line start end null-str parser
-                    &optional validator)
+                    &optional (validator #'default-validator))
   "Returns a value parsed from LINE between START and END using PARSER
 and VALIDATOR."
   (declare (optimize (speed 3)))
-  (declare (type function parser))
+  (declare (type function parser validator))
   (let ((parsed-value (funcall parser field-name line
                                :start start :end end
                                :null-str (or null-str *empty-field*))))
-    (if validator
-        (handler-case
-            (funcall validator parsed-value)
-          (error (condition)
-            (error 'field-validation-error :text
-                   (format nil "validator for field ~a raised an error on value ~a: ~a"
-                           field-name parsed-value condition))))
-      parsed-value)))
+    (handler-case
+        (when (funcall validator parsed-value)
+          parsed-value)
+      (error (condition)
+        (error 'field-validation-error
+               :field field-name
+               :text (format nil "validation error on value ~a: ~a"
+                             parsed-value condition))))))
 
 (defun validate-record (name fields validator &rest field-names)
   "Returns a pair of constraint NAME and either T or NIL, indicating
@@ -187,14 +200,16 @@ FIELDS named by FIELD-NAMES."
     (cons name (handler-case
                    (apply validator field-values)
                  (error (condition)
-                   (error 'record-validation-error :text
-                          (format nil "validator for ~a raised an error on field values ~a: ~a"
-                                  name field-values condition)))))))
+                   (error 'record-validation-error
+                          :record name
+                          :text (format nil (txt "validator raised an error"
+                                                 "on field values ~a: ~a")
+                                        field-values condition)))))))
 
 (defun collect-parser-args (field)
   "Returns an argument list form for FIELD to be used by PARSE-FIELD
 which has suitable parsers and validators set up for the standard
-field types: :string, :integer and :float."
+field types: :string , :integer and :float ."
   (destructuring-bind (field-name &key ignore (type :string)
                                   null-str parser validator)
       field

@@ -1,6 +1,8 @@
 ;;;
 ;;; Copyright (C) 2007-2009 Keith James. All rights reserved.
 ;;;
+;;; This file is part of deoxybyte-io.
+;;;
 ;;; This program is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
 ;;; the Free Software Foundation, either version 3 of the License, or
@@ -124,8 +126,10 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
                                               :element-type '(unsigned-byte 8)
                                               :initial-element 0)))
           (t
-           (error "Invalid element type ~a from stream ~a."
-                  elt-type stream)))))
+           (error 'invalid-argument-error
+                  :params 'stream :args stream
+                  :text (format nil "invalid element type ~a from stream ~a"
+                                elt-type stream))))))
 
 
 ;;; wrapped-stream methods

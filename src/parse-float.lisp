@@ -85,6 +85,8 @@
 ;;;                 whitespacep before defining (MCL, CMU CL), add #\newline
 ;;;                 to *whitespace-chars*. 
 
+;;; 2008-01-09 kdj  Placed this copy within package :uk.co.deoxybyte-io instead
+;;;                 of package "LISP"
 
 ; (in-package "LISP")
 ; (export '(parse-float))
