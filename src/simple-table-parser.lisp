@@ -61,30 +61,28 @@ fields and the validator must then be a function which accepts the
 parsed values of those fields in the same order and returns T when
 those fields have acceptable values."
   (let ((field-count (length fields))
-        (field-names (mapcar #'car fields))
+        (field-names `(list ,@(mapcar #'car fields)))
         (field-args (mapcar #'collect-parser-args fields))
-        (constraint-names (mapcar #'car constraints))
-        (constraint-args (mapcar #'collect-constraint-args
-                                 constraints)))
+        (constraint-names `(list ,@(mapcar #'car constraints)))
+        (constraint-args (mapcar #'collect-constraint-args constraints)))
     `(progn
-       (defun ,parser-name (line)
-         (declare (optimize (speed 3)))
-         (declare (type simple-string line))
-         (multiple-value-bind (field-starts field-ends)
-             ;; (vector-split-indices ,delimiter line)
-             (string-split-indices ,delimiter line)
-           (declare (type list field-starts))
-           (unless (= ,field-count (length field-starts))
-             (error 'malformed-record-error
-                    :record line
-                    :text (format nil "invalid line: ~d fields instead of ~d"
-                                  (length field-starts) ,field-count)))
-           (let ((parsed-fields
+      (defun ,parser-name (line)
+        (declare (optimize (speed 3)))
+        (declare (type simple-string line))
+        (multiple-value-bind (field-starts field-ends)
+            (string-split-indices line ,delimiter)
+          (declare (type list field-starts))
+          (unless (= ,field-count (length field-starts))
+            (error 'malformed-record-error
+                   :record line
+                   :text (format nil "invalid line: ~d fields instead of ~d"
+                                 (length field-starts) ,field-count)))
+          (let* ((fargs (list ,@field-args))
+                 (cargs (list ,@constraint-args))
+                 (parsed-fields
                   (loop
-                     for name in (list ,@(mapcar (lambda (n)
-                                                   `(quote ,n))
-                                                 field-names))
-                     for arg-list in (list ,@field-args)
+                     for name in ,field-names
+                     for arg-list in fargs
                      for start in field-starts
                      for end in field-ends
                      unless (key-value :ignore arg-list)
@@ -92,26 +90,23 @@ those fields have acceptable values."
                                    (apply #'parse-field
                                           name line
                                           start end arg-list)))))
-             (let* ((record-constraints
-                     (loop
-                        for name in (list ,@(mapcar (lambda (n)
-                                                      `(quote ,n))
-                                                    constraint-names))
-                        for form in (list ,@constraint-args)
-                        collect (apply #'validate-record
-                                       name parsed-fields form)))
-                    (failed-constraints
-                     (loop
-                        for (result . nil) on record-constraints
-                        when (null (cdr result))
-                        collect (car result))))
-               (when failed-constraints
-                 (error 'record-validation-error
-                        :record line
-                        :text
-                        (format nil "constraints ~a failed"
-                                failed-constraints))))
-             parsed-fields))))))
+            (let* ((record-constraints
+                    (loop
+                       for name in ,constraint-names
+                       for form in cargs
+                       collect (apply #'validate-record
+                                      name parsed-fields form)))
+                   (failed-constraints
+                    (loop
+                       for (result . nil) on record-constraints
+                       when (null (cdr result))
+                       collect (car result))))
+              (when failed-constraints
+                (error 'record-validation-error
+                       :record line
+                       :text (format nil "constraints ~a failed"
+                                     failed-constraints))))
+            parsed-fields))))))
 
 (declaim (inline default-validator))
 (defun default-validator (value)
@@ -215,7 +210,7 @@ field types: :string , :integer and :float ."
       field
     (declare (ignore field-name))
     (if ignore
-        `(list :ignore t)
+        '(list :ignore t)
       (let ((field-parser
              (or parser (ecase type
                           (:string '#'default-string-parser)
@@ -223,9 +218,9 @@ field types: :string , :integer and :float ."
                           (:float '#'default-float-parser))))
             (field-validator
              (or validator (ecase type
-                             (:string nil)
-                             (:integer nil)
-                             (:float nil)))))
+                             (:string '#'default-validator)
+                             (:integer '#'default-validator)
+                             (:float '#'default-validator)))))
         `(list ,null-str ,field-parser ,field-validator)))))
 
 (defun collect-constraint-args (form)
