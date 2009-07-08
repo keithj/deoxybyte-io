@@ -200,8 +200,9 @@ Returns:
 
  - T."
   (format stream "~{~<~%~,70:;~a~> ~}~%"
-          (loop for word in (split-sequence:split-sequence
-                             #\Space help-message) collect word))
+          (loop
+             for word in (dxu:string-split help-message #\Space)
+             collect word))
   (terpri stream)
   (write-line "  Options:" stream)
   (dolist (opt options)
@@ -362,26 +363,26 @@ raises an {define-condition incompatible-argument} error."
 (defun parse-string-list (string)
   "Returns a list of strings parsed from STRING by splitting on the
 *list-separator-char* character."
-  (split-sequence:split-sequence *list-separator-char* string
-                                 :remove-empty-subseqs t))
+  (string-split string *list-separator-char*
+                :remove-empty-substrings t))
 
 (defun parse-integer-list (string)
   "Returns a list of integers parsed from STRING after splitting on
 the *list-separator-char* character."
   (mapcar #'parse-integer
-          (split-sequence:split-sequence *list-separator-char* string
-                                         :remove-empty-subseqs t)))
+          (string-split string *list-separator-char*
+                        :remove-empty-substrings t)))
 
 (defun parse-character-list (string)
   "Returns a list of integers parsed from STRING after splitting on
 the *list-separator-char* character."
   (mapcar #'parse-character
-          (split-sequence:split-sequence *list-separator-char* string
-                                         :remove-empty-subseqs t)))
+          (string-split string *list-separator-char*
+                        :remove-empty-substrings t)))
 
 (defun parse-float-list (string)
   "Returns a list of floats parsed from STRING after splitting on the
 *list-separator-char* character."
   (mapcar #'parse-float
-          (split-sequence:split-sequence *list-separator-char* string
-                                         :remove-empty-subseqs t)))
+          (string-split string *list-separator-char*
+                        :remove-empty-substrings t)))

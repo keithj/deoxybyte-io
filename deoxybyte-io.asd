@@ -33,7 +33,7 @@
     :author "Keith James"
     :licence "GPL v3"
     :in-order-to ((test-op (load-op :deoxybyte-io :deoxybyte-io-test)))
-    :depends-on (:deoxybyte-utilities :split-sequence :cl-fad :getopt
+    :depends-on (:deoxybyte-utilities :cl-fad :getopt
                  :trivial-gray-streams :ieee-floats)
     :components
     ((:module :core
