@@ -30,11 +30,15 @@
 
 (defsystem deoxybyte-io
     :name "deoxybyte-io"
+    :version "0.4.3"
     :author "Keith James"
     :licence "GPL v3"
     :in-order-to ((test-op (load-op :deoxybyte-io :deoxybyte-io-test)))
-    :depends-on (:deoxybyte-utilities :cl-fad :getopt
-                 :trivial-gray-streams :ieee-floats)
+    :depends-on ((:version :cl-fad "0.6.2")
+                 (:version :deoxybyte-utilities "0.5.0")
+                 (:version :getopt "1.0")
+                 :ieee-floats
+                 :trivial-gray-streams)
     :components
     ((:module :core
               :serial t
