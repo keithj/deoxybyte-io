@@ -11,10 +11,40 @@ transfer of data between Lisp and its environment. It includes:
 - Binary encoding and decoding
 
 
+Installation
+
+deoxybyte-io uses ASDF for system definition. Copy or symlink
+deoxybyte-io.asd (and optionally deoxybyte-io-test.asd) to your
+asdf:*central-registry* and load deoxybyte-io with the asdf:operate
+function:
+
+ (asdf:operate 'asdf:load-op :deoxybyte-io)
+
+or with the equivalent deoxybyte-systems:load-system function:
+
+ (dxs:load-system :deoxybyte-io)
+
+
+Tests
+
+To run the unit and regression tests you need to have LIFT
+installed. Run the tests with the asdf:operate function:
+
+ (asdf:operate 'asdf:test-op :deoxybyte-io)
+
+or with the equivalent deoxybyte-systems:test-system function:
+
+ (dxs:test-system :deoxybyte-io)
+
+
 Documentation
 
 See the Lisp docstrings, particularly the package docstrings for an
-overview.
+overview. HTML documentation may be generated with the command:
+
+ (dxs:document-system :deoxybyte-io)
+
+at the REPL, provided that CLDOC is installed.
 
 
 Dependencies
