@@ -56,3 +56,9 @@ cl-fad                  http://www.weitz.de/cl-fad/
 getopt                  git://git.b9.com/getopt.git
 ieee-floats             http://common-lisp.net/project/ieee-floats/
 trivial-gray-streams    http://www.cliki.net/trivial-gray-streams
+
+
+Optional dependencies
+
+LIFT                    http://common-lisp.net/project/lift/
+CLDOC                   http://common-lisp.net/project/cldoc/

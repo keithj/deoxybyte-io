@@ -87,7 +87,7 @@ defaulting to NIL."
                                   :type type)))
 
 (defun make-tmp-directory (&key (tmpdir *default-tmpdir*) (basename "")
-                           (if-exists :error) (mode 511))
+                           (if-exists :error))
   "Creates a new temporary directory and returns its pathname. The new
 directory's pathname is created using {defun make-tmp-pathname} . The
 IF-EXISTS keyword argument determines what happens if a directory by
@@ -103,7 +103,8 @@ created an NIL is returned to indicate failure."
       (:supersede (if (fad:directory-exists-p pathname)
                       (fad:delete-directory-and-files pathname)))
       ((nil) nil))
-    (fad:pathname-as-directory (ensure-directories-exist pathname :mode mode))))
+    ;; :mode is a non-ANSI extension to ensure-directories-exist in SBCL
+    (fad:pathname-as-directory (ensure-directories-exist pathname))))
 
 (defun make-pathname-gen (dir name &key type separator generator)
   "Returns a function of zero arity that generates pathnames when
