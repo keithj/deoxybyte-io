@@ -113,8 +113,8 @@ supplied."))
          :reader file-of
          :documentation "The malformed file."))
   (:report (lambda (condition stream)
-             (format stream "Malformed file error~@[: ~a~]"
-                     (text-of condition))))
+             (format stream "Malformed file~@[ ~a ~]~@[: ~a~]"
+                     (file-of condition) (text-of condition))))
   (:documentation "An error that is raised when a file is malformed
 for any reason."))
 
@@ -124,16 +124,16 @@ for any reason."))
            :reader record-of
            :documentation "The malformed record."))
   (:report (lambda (condition stream)
-             (format stream "Malformed record error~@[: ~a~]"
-                     (text-of condition))))
+             (format stream "Malformed record~@[ ~a ~]~@[: ~a~]"
+                     (record-of condition) (text-of condition))))
   (:documentation "An error that is raised when a record is malformed
 for any reason."))
 
 (define-condition record-validation-error (malformed-record-error)
   ()
   (:report (lambda (condition stream)
-             (format stream "Record validation error~@[: ~a~]"
-                     (text-of condition))))
+             (format stream "Invalid record~@[ ~a ~]~@[: ~a~]"
+                     (record-of condition) (text-of condition))))
   (:documentation "An error that is raised when a record fails
 validation of one or more of its parts."))
 
@@ -143,15 +143,15 @@ validation of one or more of its parts."))
           :reader field-of
           :documentation "The malformed field."))
   (:report (lambda (condition stream)
-             (format stream "Malformed field error~@[: ~a~]"
-                     (text-of condition))))
+             (format stream "Malformed field~@[ ~a ~]~@[: ~a~]"
+                     (field-of condition) (text-of condition))))
   (:documentation "An error that is raised when a field-based record
 contains a malformed field within it."))
 
 (define-condition field-validation-error (malformed-field-error)
   ()
   (:report (lambda (condition stream)
-             (format stream "Field validation error~@[: ~a~]"
-                     (text-of condition))))
+             (format stream "Invalid field~@[ ~a ~]~@[: ~a~]"
+                     (field-of condition) (text-of condition))))
   (:documentation "An error that is raised when a record field fails
 validation."))

@@ -19,16 +19,6 @@
 
 (in-package :uk.co.deoxybyte-io)
 
-(defun test-sort (in-filespec out-filespec buffer-size)
-  (with-open-file (in in-filespec :direction :input
-                   :element-type 'base-char
-                   :external-format :ascii)
-    (with-open-file (out out-filespec :direction :output
-                     :element-type 'base-char
-                     :external-format :ascii
-                     :if-exists :supersede)
-      (external-merge-sort in out #'string<= :buffer-size buffer-size))))
-
 (defun make-buffer (stream)
   "Returns an object wrapping STREAM with a one-line read buffer."
   (cons (read-line stream) stream))
@@ -105,7 +95,7 @@ bi-diectional streams to the temporary files, ready for reading during
 the merge step."
   (let ((type (stream-element-type stream))
         (format (stream-external-format stream))
-        (chunk-streams '()))
+        (chunk-streams ()))
     (flet ((save-chunk (chunk)
              (let ((out (open (make-tmp-pathname :basename "sort")
                               :direction :io
@@ -149,36 +139,3 @@ STREAM."
             (princ line stream)
             (terpri stream)))))
 
-(defun count-occurrences (in out test)
-  (loop
-     with current = nil
-     and count = 0
-     as line = (read-line in nil nil)
-     while line
-     do (cond ((null current)
-               (setf current line
-                     count 1))
-              ((funcall test line current)
-               (incf count))
-              (t
-               (princ current out)
-               (write-char #\Tab out)
-               (princ count out)
-               (terpri out)
-               (setf current line
-                     count 1)))
-       finally (when current
-                 (princ current out)
-                 (write-char #\Tab out)
-                 (princ count out)
-                 (terpri out))))
-
-(defun test-count (in-filespec out-filespec)
-  (with-open-file (in in-filespec :direction :input
-                   :element-type 'base-char
-                   :external-format :ascii)
-    (with-open-file (out out-filespec :direction :output
-                     :element-type 'base-char
-                     :external-format :ascii
-                     :if-exists :supersede)
-      (count-occurrences in out #'string<=))))

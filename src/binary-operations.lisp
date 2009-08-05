@@ -44,7 +44,7 @@ Key:
     `(progn
       (declaim (inline ,name))
       (defun ,name (value buffer &optional (index 0))
-        ,(format nil (txt "Encodes a ~a byteinteger as consecutive bytes"
+        ,(format nil (txt "Encodes a ~a byte integer as consecutive bytes"
                           "in BUFFER, in ~a byte order, starting at INDEX.")
                  bytes (string-downcase (symbol-name order)))
         ;; (declare (optimize (speed 3) (safety 1)))
