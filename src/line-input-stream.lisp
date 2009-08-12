@@ -171,9 +171,8 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
   nil)
 
 (defmethod stream-read-sequence ((stream character-line-input-stream)
-                                 sequence &optional start end)
-  (let ((start (or start 0))
-        (end (or end (length sequence))))
+                                 sequence &optional (start 0) end)
+  (let ((end (or end (length sequence))))
     (stream-read-sequence-with-line-stack stream sequence start end
                                           (lambda (stream)
                                             (read-char stream nil)))))
@@ -196,7 +195,7 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
 (defmethod stream-clear-input ((stream binary-line-input-stream))
   (setf (offset-of stream) 0
         (num-bytes-of stream) 0
-        (line-stack-of stream) nil))
+        (line-stack-of stream) ()))
 
 (defmethod stream-read-byte ((stream binary-line-input-stream))
   (cond ((and (null (line-stack-of stream)) (buffer-empty-p stream))

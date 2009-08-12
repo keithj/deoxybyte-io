@@ -76,3 +76,4 @@ test returns T are ignored and skipped."))
 
 (defmethod stream-force-output ((stream io-stream-mixin))
   nil)
+
