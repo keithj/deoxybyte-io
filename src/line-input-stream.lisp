@@ -231,8 +231,13 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
 
 (defmethod stream-file-position ((stream binary-line-input-stream)
                                  &optional position)
-  (- (file-position (stream-of stream))
-     (- (num-bytes-of stream) (offset-of stream))))
+  (cond (position
+         (setf (num-bytes-of stream) 0
+               (offset-of stream) 0
+               (line-stack-of stream) ())
+         (file-position (stream-of stream) position))
+        (t (- (file-position (stream-of stream))
+              (- (num-bytes-of stream) (offset-of stream))))))
 
 (defmethod more-lines-p :before ((stream binary-line-input-stream))
   (when (zerop (num-bytes-of stream))

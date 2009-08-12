@@ -60,11 +60,11 @@
            nil))))
 
 (defmethod initialize-instance :after ((stream line-merge-stream) &key)
-  (with-accessors ((s stream-of) (e element-of))
+  (with-accessors ((s stream-of) (h stream-head-of))
       stream
-    (setf e (read-line s nil nil))))
+    (setf h (read-line s nil nil))))
 
 (defmethod stream-merge ((stream line-merge-stream))
-  (with-accessors ((s stream-of) (e element-of))
+  (with-accessors ((s stream-of) (h stream-head-of))
       stream
-    (setf e (read-line s nil nil))))
+    (setf h (read-line s nil nil))))

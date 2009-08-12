@@ -35,15 +35,13 @@ contents."))
 contents."))
 
 (defclass merge-stream (io-stream-mixin)
-  ((element :initform nil
-            :initarg :element
-            :accessor element-of
-            :documentation ""))
+  ((stream-head :initform nil
+                :initarg :stream-head
+                :accessor stream-head-of
+                :documentation "Returns the next element from
+  MERGE-STREAM without removing it. Part of the external merge sort
+  protocol."))
   (:documentation "An IO stream for merging sorted data."))
-
-(defgeneric stream-peek (merge-stream)
-  (:documentation "Returns the next element from MERGE-STREAM without
-  removing it. Part of the external merge sort protocol."))
 
 (defgeneric stream-merge (merge-stream)
   (:documentation "Returns the next element from MERGE-STREAM as part
@@ -116,9 +114,6 @@ Returns:
 (defmethod stream-delete-file ((stream merge-stream))
   (delete-file (stream-of stream)))
 
-(defmethod stream-peek ((stream merge-stream))
-  (element-of stream))
-
 (defmethod external-merge-sort ((in sort-input-stream) (out sort-output-stream)
                                 predicate &key key (buffer-size 100000))
   (let* ((merge-streams
@@ -160,10 +155,10 @@ required by the merge-sort algorithm."
   (declare (type (simple-array merge-stream (*)) merge-streams)
            (type function predicate key))
   (loop
-     with x = (stream-peek (aref merge-streams 0))
+     with x = (stream-head-of (aref merge-streams 0))
      and x-index = 0
      for y-index from 0 below (length merge-streams)
-     for y = (stream-peek (aref merge-streams y-index))
+     for y = (stream-head-of (aref merge-streams y-index))
      when (and y (or (null x)
                      (funcall predicate (funcall key y)
                               x)))

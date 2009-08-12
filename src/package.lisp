@@ -219,8 +219,7 @@
      #:sort-input-stream
      #:sort-output-stream
      #:merge-stream
-     #:element-of
-     #:stream-peek
+     #:stream-head-of
      #:stream-merge
      #:stream-read-element
      #:stream-write-element
