@@ -37,8 +37,7 @@
     :depends-on ((:version :cl-fad "0.6.2")
                  (:version :deoxybyte-utilities "0.5.0")
                  (:version :getopt "1.0")
-                 :ieee-floats
-                 :trivial-gray-streams)
+                 :ieee-floats)
     :components
     ((:module :core
               :serial t
@@ -52,7 +51,8 @@
                            (:file "command-line-interface")
                            (:file "files-and-directories")
                            (:file "simple-table-parser")
-                           (:file "external-merge-sort")))
+                           (:file "external-merge-sort")
+                           (:file "external-line-sort")))
      (:lift-test-config :deoxybyte-io-test
                         :target-system :deoxybyte-io)
      (:cldoc-config :deoxybyte-io-doc

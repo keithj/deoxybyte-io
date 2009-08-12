@@ -34,7 +34,7 @@ buffer."
   `(integer 0 ,+byte-buffer-size+))
 
 
-(defclass line-input-stream (wrapped-stream trivial-gray-stream-mixin)
+(defclass line-input-stream (wrapped-stream-mixin)
   ((line-stack :initform nil
                :accessor line-stack-of
                :documentation "A list of lines that have been pushed
@@ -131,21 +131,6 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
                   :text (format nil "invalid element type ~a from stream ~a"
                                 elt-type stream))))))
 
-
-;;; wrapped-stream methods
-(defmethod stream-element-type ((stream wrapped-stream))
-  (stream-element-type (stream-of stream)))
-
-(defmethod close ((stream wrapped-stream) &key abort)
-  (close (stream-of stream) :abort abort))
-
-(defmethod open-stream-p ((stream wrapped-stream))
-  (open-stream-p (stream-of stream)))
-
-(defmethod stream-file-position ((stream wrapped-stream))
-  (file-position (stream-of stream)))
-
-
 ;;; line-input-stream methods
 (defmethod find-line ((stream line-input-stream) test
                       &optional max-lines)
@@ -186,10 +171,12 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
   nil)
 
 (defmethod stream-read-sequence ((stream character-line-input-stream)
-                                 sequence start end &key)
-  (stream-read-sequence-with-line-stack stream sequence start end
-                                        #'(lambda (stream)
-                                            (read-char stream nil))))
+                                 sequence &optional start end)
+  (let ((start (or start 0))
+        (end (or end (length sequence))))
+    (stream-read-sequence-with-line-stack stream sequence start end
+                                          (lambda (stream)
+                                            (read-char stream nil)))))
 
 (defmethod stream-read-line ((stream character-line-input-stream))
   (if (null (line-stack-of stream))
@@ -222,9 +209,11 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
          (read-elt-from-line-stack stream))))
 
 (defmethod stream-read-sequence ((stream binary-line-input-stream)
-                                 sequence start end &key)
-  (stream-read-sequence-with-line-stack stream sequence start end
-                                        #'stream-read-byte))
+                                 sequence &optional start end)
+  (let ((start (or start 0))
+        (end (or end (length sequence))))
+    (stream-read-sequence-with-line-stack stream sequence start end
+                                          #'stream-read-byte)))
 
 (defmethod stream-read-line ((stream binary-line-input-stream))
   (if (null (line-stack-of stream))
@@ -240,7 +229,8 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
                (values (concatenate-chunks chunks) has-newline-p))))
     (pop (line-stack-of stream))))
 
-(defmethod stream-file-position ((stream binary-line-input-stream))
+(defmethod stream-file-position ((stream binary-line-input-stream)
+                                 &optional position)
   (- (file-position (stream-of stream))
      (- (num-bytes-of stream) (offset-of stream))))
 

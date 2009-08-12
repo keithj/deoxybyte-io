@@ -1,5 +1,5 @@
 ;;;
-;;; Copyright (C) 2008-2009 Keith James. All rights reserved.
+;;; Copyright (C) 2009 Keith James. All rights reserved.
 ;;;
 ;;; This file is part of deoxybyte-io.
 ;;;
@@ -19,123 +19,156 @@
 
 (in-package :uk.co.deoxybyte-io)
 
-(defun make-buffer (stream)
-  "Returns an object wrapping STREAM with a one-line read buffer."
-  (cons (read-line stream) stream))
+;;; This external merge sort protocol is slightly slower than the
+;;; previous implementation, but is extendable to sort things other
+;;; than line-based text files. Speed is roughly 70% of the speed of
+;;; Unix sort using SBCL 1.0.30 on X86_64.
 
-(defun buffer-peek (buffer-stream)
-  "Returns the first available line in BUFFER-STREAM, without
-reading."
-  (car buffer-stream))
+(defclass sort-input-stream (fundamental-input-stream)
+  ()
+  (:documentation "An input stream for reading and sorting the stream
+contents."))
 
-(defun buffer-refill (buffer-stream)
-  "Reads and caches the next line from BUFFER-STREAM, returning
-BUFFER-STREAM."
-  (rplaca buffer-stream (read-line (cdr buffer-stream) nil nil)))
+(defclass sort-output-stream (fundamental-output-stream)
+  ()
+  (:documentation "An output stream for sorting and writing the stream
+contents."))
 
-(defun external-merge-sort (in out predicate
-                            &key key (buffer-size 100000))
-  "Performs an external merge sort of data from an input stream,
-writing the sorted data to an output stream.
+(defclass merge-stream (io-stream-mixin)
+  ((element :initform nil
+            :initarg :element
+            :accessor element-of
+            :documentation ""))
+  (:documentation "An IO stream for merging sorted data."))
+
+(defgeneric stream-peek (merge-stream)
+  (:documentation "Returns the next element from MERGE-STREAM without
+  removing it. Part of the external merge sort protocol."))
+
+(defgeneric stream-merge (merge-stream)
+  (:documentation "Returns the next element from MERGE-STREAM as part
+  of the a merging operation between several {defclass merge-stream }
+  s."))
+
+(defgeneric stream-read-element (sort-input-stream)
+  (:documentation "Returns the next element from SORT-INPUT-STREAM."))
+
+(defgeneric stream-write-element (element sort-output-stream)
+  (:documentation "Writes ELEMENT to SORT-OUTPUT-STREAM."))
+
+(defgeneric make-merge-stream (sort-input-stream predicate
+                               &key key buffer-size)
+  (:documentation "Returns a new {defclass merge-stream} appropriate
+to SORT-INPUT-STREAM. The new stream must return sorted elements read
+from SORT-INPUT-STREAM.
 
 Arguments:
 
-- in (input stream): A stream from which the data to be sorted are
-read.
-- out (output stream): A stream to which the sorted data are written.
-- predicate (function): A designator for a function of two arguments
-that returns a generalised boolean.
+- sort-input-stream (sort-input-stream): the stream whose elements are
+to be sorted.
 
-Optional:
+- predicate (function designator): the sorting predicate, as in
+CL:SORT, a function of two arguments that returns a generalized
+boolean.
 
--key (function): A designator for a function of one argument, or nil.
-- buffer-size (fixnum): The number of lines to be sorted in memory at
-one time."
-  (let ((chunk-streams (external-sort in predicate buffer-size :key key)))
+Key:
+
+- key (function designator): a function of one argument, or nil.
+
+- buffer-size (fixnum): the size of the in-memory sort buffer and
+  hence the number of elements written to disk in the external merge
+  file.
+
+Returns:
+
+- a {defclass merge-stream} from which sorted elements may be read."))
+
+(defgeneric external-merge-sort (sort-input-stream sort-output-stream predicate
+                                 &key key buffer-size)
+  (:documentation "Performs an external merge sort on the elements
+read from SORT-INPUT-STREAM and writes the sorted elements to
+SORT-OUTPUT-STREAM.
+
+Arguments:
+
+- sort-input-stream (sort-input-stream): the stream whose elements are
+to be sorted.
+- sort-output-stream (sort-output-stream): a stream whose elements are
+sorted.
+
+- predicate (function designator): the sorting predicate, as in
+CL:SORT, a function of two arguments that returns a generalized
+boolean.
+
+Key:
+
+- key (function designator): a function of one argument, or nil.
+
+- buffer-size (fixnum): the size of the in-memory sort buffer and
+  hence the number of elements written to disk in the external merge
+  file.
+
+Returns:
+
+- the total number of elements sorted (fixnum).
+- the number of {defclass merge-stream} s used in sorting (fixnum)."))
+
+(defmethod stream-delete-file ((stream merge-stream))
+  (delete-file (stream-of stream)))
+
+(defmethod stream-peek ((stream merge-stream))
+  (element-of stream))
+
+(defmethod external-merge-sort ((in sort-input-stream) (out sort-output-stream)
+                                predicate &key key (buffer-size 100000))
+  (let* ((merge-streams
+          (loop
+             for stream = (make-merge-stream
+                           in predicate :key key :buffer-size buffer-size)
+             while stream
+             collect stream into streams
+             finally (return (make-array (length streams)
+                                         :initial-contents streams))))
+         (key (cond ((null key)
+                     #'identity)
+                    ((functionp key)
+                     key)
+                    (t
+                     (fdefinition key)))))
     (unwind-protect
          (loop
-            with buffers =
-              (make-array (length chunk-streams)
-                          :initial-contents
-                          (loop
-                             for s in chunk-streams
-                             collect (make-buffer s)))
-            as line = (merge-next-line buffers predicate :key key)
-            while line
-            do (write-line line out))
-      (dolist (s chunk-streams)
-        (when (open-stream-p s)
-          (close s))
-        (delete-file s)))))
+            for elt = (merge-element merge-streams predicate key)
+            while elt
+            count elt into total
+            do (stream-write-element elt out)
+            finally (return (values total (length merge-streams))))
+      (loop
+         for stream across merge-streams
+         do (progn
+              (when (open-stream-p stream)
+                #+:sbcl (ignore-errors  ; FIXME -- Workaround for bug
+                                        ; 406271 in sbcl
+                          (stream-delete-file stream))
+                #-:sbcl(stream-delete-file stream)
+                (close stream :abort t)))))))
 
-(defun merge-next-line (buffers predicate &key key)
-  "Returns the next line in the ordering described by PREDICATE from
-one of BUFFERS."
+(defun merge-element (merge-streams predicate key)
+  "Returns the next element from one of MERGE-STREAMS. The returned
+element is the on that sorts first according to PREDICATE and KEY, as
+required by the merge-sort algorithm."
+  (declare (optimize (speed 3)))
+  (declare (type (simple-array merge-stream (*)) merge-streams)
+           (type function predicate key))
   (loop
-     with found = (buffer-peek (aref buffers 0))
-     and found-idx = 0
-     for test-idx from 0 below (length buffers)
-     for line = (buffer-peek (aref buffers test-idx))
-     when (and line (or (null found)
-                        (funcall predicate (if key
-                                               (funcall key line)
-                                             line) found)))
-     do (setf found line
-              found-idx test-idx)
+     with x = (stream-peek (aref merge-streams 0))
+     and x-index = 0
+     for y-index from 0 below (length merge-streams)
+     for y = (stream-peek (aref merge-streams y-index))
+     when (and y (or (null x)
+                     (funcall predicate (funcall key y)
+                              x)))
+     do (setf x y
+              x-index y-index)
      finally (progn
-               (setf (aref buffers found-idx)
-                     (buffer-refill (aref buffers found-idx)))
-               (return found))))
-
-(defun external-sort (stream predicate buffer-size &key key)
-  "Repeatedly reads up to BUFFER-SIZE lines from STREAM, sorts them
-according to PREDICATE and writes them to a temporary file, until all
-available data in STREAM has been exhausted. Returns a list of open
-bi-diectional streams to the temporary files, ready for reading during
-the merge step."
-  (let ((type (stream-element-type stream))
-        (format (stream-external-format stream))
-        (chunk-streams ()))
-    (flet ((save-chunk (chunk)
-             (let ((out (open (make-tmp-pathname :basename "sort")
-                              :direction :io
-                              :element-type type
-                              :external-format format)))
-               (write-sorted-chunk chunk predicate out :key key)
-               (file-position out 0)
-               (push out chunk-streams))
-             chunk-streams))
-      (handler-case
-          (loop
-             with chunk = (make-array buffer-size :adjustable t
-                                      :fill-pointer 0)
-             and i = 0
-             as line = (read-line stream nil nil)
-             while line
-             do (progn
-                  (vector-push line chunk)
-                  (incf i)
-                  (unless (< i buffer-size)
-                    (save-chunk chunk)
-                    (adjust-array chunk buffer-size :fill-pointer 0)
-                    (setf i 0)))
-             finally (unless (zerop (length chunk))
-                       (save-chunk chunk)))
-        (error (file-error)
-          (dolist (s  chunk-streams)
-            (when (open-stream-p s)
-              (close s :abort t)))
-          (error file-error))))
-    chunk-streams))
-
-(defun write-sorted-chunk (chunk predicate stream &key key)
-  "Sorts vector of lines CHUNK by PREDICATE and writes them to
-STREAM."
-  (let ((*print-pretty* nil)
-        (sorted (sort chunk predicate :key key)))
-    (loop
-       for line across sorted
-       do (progn
-            (princ line stream)
-            (terpri stream)))))
-
+               (stream-merge (aref merge-streams x-index))
+               (return x))))
