@@ -122,7 +122,7 @@ Returns:
                            in predicate :key key :buffer-size buffer-size)
              while stream
              collect stream into streams
-             finally (return (make-array (length streams)
+             finally (return (make-array (list-length streams)
                                          :initial-contents streams))))
          (key (cond ((null key)
                      #'identity)

@@ -148,14 +148,18 @@
      #:stream-read-sequence
      #:stream-write-sequence
 
+     #:wrapped-stream-mixin
+     #:stream-of
+     #:stream-filter-mixin
+     #:test-of
+     #:io-stream-mixin
+
      #:line-input-stream
      #:character-line-input-stream
      #:binary-line-input-stream
-     #:stream-filter-mixin
      #:push-line
      #:more-lines-p
      #:find-line
-     #:test-of
      #:make-line-input-stream
      #:with-li-stream
      #:with-ascii-li-stream
