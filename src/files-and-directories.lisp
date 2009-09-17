@@ -19,8 +19,12 @@
 
 (in-package :uk.co.deoxybyte-io)
 
-(defparameter *default-tmpdir* "/tmp/"
-  "The default temporary file directory.")
+(defparameter *default-tmpdir* (fad:pathname-as-directory "/tmp/")
+  "The default temporary file directory pathname.")
+
+(defparameter *default-tmpfile-defaults*
+  (make-pathname :directory (pathname-directory *default-tmpdir*))
+  "The defaults used to fill in temporary file pathnames.")
 
 (defmacro with-tmp-directory ((dir &key (tmpdir *default-tmpdir*) (basename "")
                                    (if-exists :error) (mode 511))

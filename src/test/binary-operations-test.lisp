@@ -59,45 +59,45 @@
     (ensure (= -1 (decode-int16be bytes 0)))
     (ensure (= -8 (decode-int16be bytes 2)))))
 
-(addtest (deoxybyte-io-tests) round-trip-unsigned-int64-le
+(addtest (deoxybyte-io-tests) round-trip-unsigned-int64-le/1
   (ensure (test-round-trip 8 #'encode-int64le #'decode-int64le)))
 
-(addtest (deoxybyte-io-tests) round-trip-signed-int64-le
+(addtest (deoxybyte-io-tests) round-trip-signed-int64-le/1
   (ensure (test-round-trip 8 #'encode-int64le #'decode-int64le t)))
 
-(addtest (deoxybyte-io-tests) round-trip-unsigned-int32-le
+(addtest (deoxybyte-io-tests) round-trip-unsigned-int32-le/1
   (ensure (test-round-trip 4 #'encode-int32le #'decode-int32le)))
 
-(addtest (deoxybyte-io-tests) round-trip-signed-int32-le
+(addtest (deoxybyte-io-tests) round-trip-signed-int32-le/1
   (ensure (test-round-trip 4 #'encode-int32le #'decode-int32le t)))
 
-(addtest (deoxybyte-io-tests) round-trip-unsigned-int16-le
+(addtest (deoxybyte-io-tests) round-trip-unsigned-int16-le/1
   (ensure (test-round-trip 2 #'encode-int16le #'decode-int16le)))
 
-(addtest (deoxybyte-io-tests) round-trip-signed-int16-le
+(addtest (deoxybyte-io-tests) round-trip-signed-int16-le/1
   (ensure (test-round-trip 2 #'encode-int16le #'decode-int16le t)))
 
-(addtest (deoxybyte-io-tests) round-trip-signed-int8-le
+(addtest (deoxybyte-io-tests) round-trip-signed-int8-le/1
   (ensure (test-round-trip 1 #'encode-int8le #'decode-int8le t)))
 
 
-(addtest (deoxybyte-io-tests) round-trip-unsigned-int64-be
+(addtest (deoxybyte-io-tests) round-trip-unsigned-int64-be/1
   (ensure (test-round-trip 8 #'encode-int64be #'decode-int64be)))
 
-(addtest (deoxybyte-io-tests) round-trip-signed-int64-be
+(addtest (deoxybyte-io-tests) round-trip-signed-int64-be/1
   (ensure (test-round-trip 8 #'encode-int64be #'decode-int64be t)))
 
-(addtest (deoxybyte-io-tests) round-trip-unsigned-int32-be
+(addtest (deoxybyte-io-tests) round-trip-unsigned-int32-be/1
   (ensure (test-round-trip 4 #'encode-int32be #'decode-int32be)))
 
-(addtest (deoxybyte-io-tests) round-trip-signed-int32-be
+(addtest (deoxybyte-io-tests) round-trip-signed-int32-be/1
   (ensure (test-round-trip 4 #'encode-int32be #'decode-int32be t)))
 
-(addtest (deoxybyte-io-tests) round-trip-unsigned-int16-be
+(addtest (deoxybyte-io-tests) round-trip-unsigned-int16-be/1
   (ensure (test-round-trip 2 #'encode-int16be #'decode-int16be)))
 
-(addtest (deoxybyte-io-tests) round-trip-signed-int16-be
+(addtest (deoxybyte-io-tests) round-trip-signed-int16-be/1
   (ensure (test-round-trip 2 #'encode-int16be #'decode-int16be t)))
 
-(addtest (deoxybyte-io-tests) round-trip-signed-int8-be
+(addtest (deoxybyte-io-tests) round-trip-signed-int8-be/1
   (ensure (test-round-trip 1 #'encode-int8be #'decode-int8be t)))

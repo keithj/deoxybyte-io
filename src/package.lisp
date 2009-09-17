@@ -105,6 +105,7 @@
 
      ;; Files and directories
      #:*default-tmpdir*
+     #:*default-tmpfile-defaults*
      #:absolute-pathname-p
      #:relative-pathname-p
      #:parse-file
