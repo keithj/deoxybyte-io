@@ -141,10 +141,7 @@ Returns:
          for stream across merge-streams
          do (progn
               (when (open-stream-p stream)
-                #+:sbcl (ignore-errors  ; FIXME -- Workaround for bug
-                                        ; 406271 in sbcl
-                          (stream-delete-file stream))
-                #-:sbcl(stream-delete-file stream)
+                (stream-delete-file stream)
                 (close stream :abort t)))))))
 
 (defun merge-element (merge-streams predicate key)
