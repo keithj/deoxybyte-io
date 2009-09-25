@@ -49,7 +49,7 @@
        do (vector-push elt elements))
     (cond ((plusp (length elements))
            (loop
-              for elt across (sort elements predicate :key key)
+              for elt across (stable-sort elements predicate :key key)
               do (write-line elt out)
               finally (if (file-position out 0)
                           (return
