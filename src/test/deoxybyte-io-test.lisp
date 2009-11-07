@@ -264,6 +264,15 @@
         (ensure (not found))
         (ensure (= 5 line-count))))))
 
+(addtest (deoxybyte-io-tests) pathstring/1
+  (ensure (string= "/foo/bar/baz.txt"
+                   (pathstring (pathname "/foo/bar/baz.txt"))))
+  ;; These tests ensure that we can unescape all the dots under CCL
+  (ensure (string= "/foo/bar.baz.txt"
+                   (pathstring (pathname "/foo/bar.baz.txt"))))
+  (ensure (string= "/foo/bar..baz.txt"
+                   (pathstring (pathname "/foo/bar..baz.txt")))))
+
 (addtest (deoxybyte-io-tests) make-tmp-pathname/1
   ;; Test defaults
   (ensure (pathnamep (make-tmp-pathname)))

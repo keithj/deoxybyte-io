@@ -111,6 +111,7 @@
      #:parse-file
      #:parse-directory
      #:ensure-file-exists
+     #:pathstring
      #:make-tmp-pathname
      #:make-tmp-directory
      #:with-tmp-directory

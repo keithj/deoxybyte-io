@@ -72,6 +72,19 @@ exist. Returns the pathname of FILESPEC."
     (declare (ignorable stream)))
   (pathname filespec))
 
+(defun pathstring (pathspec)
+  "Returns a string representing PATHNAME. This function is similar to
+CL:NAMESTRING, but is designed to be portable whereas the return value
+of CL:NAMESTRING is implementation-dependent."
+  (labels ((unescape (str)
+             (let ((esc-pos (search "\\." str )))
+               (if esc-pos
+                   (cons (subseq str 0 esc-pos)
+                         (unescape (subseq str (1+ esc-pos))))
+                 (list str)))))
+    #+:ccl (apply #'concatenate 'string (unescape (namestring pathspec)))
+    #-:ccl (namestring pathspec)))
+
 (defun make-tmp-pathname (&key (tmpdir *default-tmpdir*) (basename "") type)
   "Returns a pathname suitable for use as a temporary file or
 directory. The directory component of the new pathname is TMPDIR,
