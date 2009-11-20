@@ -62,18 +62,18 @@ from SORT-INPUT-STREAM.
 
 Arguments:
 
-- sort-input-stream (sort-input-stream): the stream whose elements are
+- sort-input-stream (sort-input-stream): The stream whose elements are
 to be sorted.
 
-- predicate (function designator): the sorting predicate, as in
+- predicate (function designator): The sorting predicate, as in
 CL:SORT, a function of two arguments that returns a generalized
 boolean.
 
 Key:
 
-- key (function designator): a function of one argument, or nil.
+- key (function designator): A function of one argument, or nil.
 
-- buffer-size (fixnum): the size of the in-memory sort buffer and
+- buffer-size (fixnum): The size of the in-memory sort buffer and
   hence the number of elements written to disk in the external merge
   file.
 
@@ -89,40 +89,41 @@ SORT-OUTPUT-STREAM.
 
 Arguments:
 
-- sort-input-stream (sort-input-stream): the stream whose elements are
+- sort-input-stream (sort-input-stream): The stream whose elements are
 to be sorted.
-- sort-output-stream (sort-output-stream): a stream whose elements are
+- sort-output-stream (sort-output-stream): A stream whose elements are
 sorted.
 
-- predicate (function designator): the sorting predicate, as in
+- predicate (function designator): The sorting predicate, as in
 CL:SORT, a function of two arguments that returns a generalized
 boolean.
 
 Key:
 
-- key (function designator): a function of one argument, or nil.
+- key (function designator): A function of one argument, or nil.
 
-- buffer-size (fixnum): the size of the in-memory sort buffer and
+- buffer-size (fixnum): The size of the in-memory sort buffer and
   hence the number of elements written to disk in the external merge
   file.
 
 Returns:
 
-- the total number of elements sorted (fixnum).
-- the number of {defclass merge-stream} s used in sorting (fixnum)."))
+- The total number of elements sorted (fixnum).
+- The number of {defclass merge-stream} s used in sorting (fixnum)."))
 
 (defmethod stream-delete-file ((stream merge-stream))
   (delete-file (stream-of stream)))
 
 (defmethod external-merge-sort ((in sort-input-stream) (out sort-output-stream)
                                 predicate &key key (buffer-size 100000))
+  (declare (optimize (speed 3) (safety 0)))
   (let* ((merge-streams
           (loop
              for stream = (make-merge-stream
                            in predicate :key key :buffer-size buffer-size)
              while stream
              collect stream into streams
-             finally (return (make-array (list-length streams)
+             finally (return (make-array (the fixnum (list-length streams))
                                          :initial-contents streams))))
          (key (cond ((null key)
                      #'identity)
@@ -149,18 +150,18 @@ Returns:
 element is the on that sorts first according to PREDICATE and KEY, as
 required by the merge-sort algorithm."
   (declare (optimize (speed 3)))
-  (declare (type (simple-array merge-stream (*)) merge-streams)
+  (declare (type simple-vector merge-streams)
            (type function predicate key))
   (loop
-     with x = (stream-head-of (aref merge-streams 0))
+     with x = (stream-head-of (svref merge-streams 0))
      and x-index = 0
      for y-index from 0 below (length merge-streams)
-     for y = (stream-head-of (aref merge-streams y-index))
+     for y = (stream-head-of (svref merge-streams y-index))
      when (and y (or (null x)
                      (funcall predicate (funcall key y)
                               x)))
      do (setf x y
               x-index y-index)
      finally (progn
-               (stream-merge (aref merge-streams x-index))
+               (stream-merge (svref merge-streams x-index))
                (return x))))
