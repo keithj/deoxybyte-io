@@ -76,8 +76,7 @@ from a stream."))
 unread data."))
 
 (defgeneric push-line (line-input-stream line)
-  (:documentation "Pushes LINE back into {defclass line-input-stream}
-."))
+  (:documentation "Pushes LINE back into {defclass line-input-stream} ."))
 
 (defgeneric find-line (line-input-stream test &optional max-lines)
   (:documentation "Iterates through lines read from LINE-INPUT-STREAM
@@ -170,12 +169,21 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
            (push-line stream copy))))
   nil)
 
+#+(or :sbcl :ccl)
 (defmethod stream-read-sequence ((stream character-line-input-stream)
                                  sequence &optional (start 0) end)
   (let ((end (or end (length sequence))))
     (stream-read-sequence-with-line-stack stream sequence start end
                                           (lambda (stream)
                                             (read-char stream nil)))))
+
+#+:lispworks
+(defmethod stream-read-sequence ((stream character-line-input-stream)
+                                 sequence start end)
+  (stream-read-sequence-with-line-stack stream sequence start end
+                                        (lambda (stream)
+                                          (read-char stream nil))))
+
 
 (defmethod stream-read-line ((stream character-line-input-stream))
   (if (null (line-stack-of stream))
@@ -207,12 +215,17 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
         (t
          (read-elt-from-line-stack stream))))
 
+#+(or :sbcl :ccl)
 (defmethod stream-read-sequence ((stream binary-line-input-stream)
-                                 sequence &optional start end)
-  (let ((start (or start 0))
-        (end (or end (length sequence))))
+                                 sequence &optional (start 0) end)
+  (let ((end (or end (length sequence))))
     (stream-read-sequence-with-line-stack stream sequence start end
                                           #'stream-read-byte)))
+#+:lispworks
+(defmethod stream-read-sequence ((stream binary-line-input-stream)
+                                 sequence start end)
+  (stream-read-sequence-with-line-stack stream sequence start end
+                                        #'stream-read-byte))
 
 (defmethod stream-read-line ((stream binary-line-input-stream))
   (if (null (line-stack-of stream))

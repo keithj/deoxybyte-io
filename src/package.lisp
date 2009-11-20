@@ -84,7 +84,7 @@
     (:shadow #:type-of)
     (:import-from
      #+:sbcl :sb-gray
-     #+:lispworks :streams
+     #+:lispworks :stream
      #+:ccl :ccl
      ,@(gray-streams-symbols))
     (:export
