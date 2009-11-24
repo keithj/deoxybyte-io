@@ -45,6 +45,7 @@
               :pathname "src/"
               :components ((:file "package")
                            (:file "conditions")
+                           (:file "environment")
                            (:file "parse-float")
                            (:file "binary-operations")
                            (:file "streams")

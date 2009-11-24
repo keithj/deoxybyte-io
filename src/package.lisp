@@ -17,6 +17,8 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
+(in-package :cl-user)
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun gray-streams-symbols ()
     "Returns a list of the symbols required for Gray streams."
@@ -102,6 +104,9 @@
      #:field-validation-error
      #:record-of
      #:field-of
+
+     ;; Environment variables
+     #:environment-variable
 
      ;; Files and directories
      #:*default-tmpdir*
