@@ -51,13 +51,22 @@ or directory, or NIL otherwise."
   (eql :relative (first (pathname-directory (pathname pathspec)))))
 
 (defun parse-file (pathspec)
+  (warn 'deprecation-warning :feature 'parse-file :in-favour 'file-pathname)
+  (file-pathname pathspec))
+
+(defun parse-directory (pathspec)
+  (warn 'deprecation-warning :feature 'parse-directory
+        :in-favour 'file-pathname)
+  (file-pathname pathspec))
+
+(defun file-pathname (pathspec)
   "Returns a new pathame that represents the file component of
 PATHSPEC."
   (let ((filename (fad:pathname-as-file pathspec)))
     (make-pathname :name (pathname-name filename)
                    :type (pathname-type filename))))
 
-(defun parse-directory (pathspec)
+(defun directory-pathname (pathspec)
   "Returns a new pathame that represents the last directory component
 of PATHSPEC."
   (let ((directory (fad:pathname-as-directory pathspec)))

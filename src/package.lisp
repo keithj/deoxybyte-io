@@ -113,8 +113,10 @@
      #:*default-tmpfile-defaults*
      #:absolute-pathname-p
      #:relative-pathname-p
-     #:parse-file
-     #:parse-directory
+     #:parse-file                       ; deprecated
+     #:parse-directory                  ; deprecated
+     #:file-pathname
+     #:directory-pathname
      #:ensure-file-exists
      #:pathstring
      #:make-tmp-pathname
