@@ -56,8 +56,8 @@ or directory, or NIL otherwise."
 
 (defun parse-directory (pathspec)
   (warn 'deprecation-warning :feature 'parse-directory
-        :in-favour 'file-pathname)
-  (file-pathname pathspec))
+        :in-favour 'directory-pathname)
+  (directory-pathname pathspec))
 
 (defun file-pathname (pathspec)
   "Returns a new pathame that represents the file component of
