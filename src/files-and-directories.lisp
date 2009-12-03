@@ -19,58 +19,61 @@
 
 (in-package :uk.co.deoxybyte-io)
 
-(defparameter *default-tmpdir* (fad:pathname-as-directory "/tmp/")
+(defparameter *default-tmpdir* (pathname "/tmp/")
   "The default temporary file directory pathname.")
 
 (defparameter *default-tmpfile-defaults*
   (make-pathname :directory (pathname-directory *default-tmpdir*))
   "The defaults used to fill in temporary file pathnames.")
 
-(defmacro with-tmp-directory ((dir &key (tmpdir *default-tmpdir*) (basename "")
-                                   (if-exists :error) (mode 511))
+(defmacro with-tmp-directory ((directory &key (tmpdir *default-tmpdir*)
+                                         (basename "") (if-exists :error)
+                                         (mode 511))
                               &body body)
-  "Executes BODY with DIR bound to a temporary directory that has been
-created with the MAKE-TMP-DIRECTORY function. The temporary directory
-is deleted afterwards."
-  `(let ((,dir (make-tmp-directory :tmpdir ,tmpdir :basename
-                                   ,basename
-                                   :if-exists ,if-exists :mode ,mode)))
+  "Executes BODY with DIRECTORY bound to a temporary directory that
+has been created with the MAKE-TMP-DIRECTORY function. The temporary
+directory is deleted afterwards."
+  `(let ((,directory (make-tmp-directory :tmpdir ,tmpdir :basename
+                                         ,basename
+                                         :if-exists ,if-exists :mode ,mode)))
     (unwind-protect
          (progn
            ,@body)
-      (fad:delete-directory-and-files ,dir))))
+      (fad:delete-directory-and-files ,directory))))
 
-(defun absolute-pathname-p (pathspec)
+(defun absolute-pathname-p (pathname)
   "Returns T if PATHSPEC is a pathname designator for an absolute file
 or directory, or NIL otherwise."
-  (eql :absolute (first (pathname-directory (pathname pathspec)))))
+  (eql :absolute (first (pathname-directory (pathname pathname)))))
 
-(defun relative-pathname-p (pathspec)
+(defun relative-pathname-p (pathname)
   "Returns T if PATHSPEC is a pathname designator for a relative file
 or directory, or NIL otherwise."
-  (eql :relative (first (pathname-directory (pathname pathspec)))))
+  (eql :relative (first (pathname-directory (pathname pathname)))))
 
-(defun parse-file (pathspec)
+(defun parse-file (pathname)
+  "Returns a new pathame that represents the file component of
+PATHSPEC. Deprecated."
   (warn 'deprecation-warning :feature 'parse-file :in-favour 'file-pathname)
-  (file-pathname pathspec))
+  (file-pathname pathname))
 
-(defun parse-directory (pathspec)
+(defun parse-directory (pathname)
+  "Returns a new pathame that represents the last directory component
+of PATHSPEC. Deprecated."
   (warn 'deprecation-warning :feature 'parse-directory
         :in-favour 'directory-pathname)
-  (directory-pathname pathspec))
+  (directory-pathname pathname))
 
-(defun file-pathname (pathspec)
+(defun file-pathname (pathname)
   "Returns a new pathame that represents the file component of
 PATHSPEC."
-  (let ((filename (fad:pathname-as-file pathspec)))
-    (make-pathname :name (pathname-name filename)
-                   :type (pathname-type filename))))
+  (make-pathname :name (pathname-name pathname)
+                 :type (pathname-type pathname)))
 
-(defun directory-pathname (pathspec)
+(defun directory-pathname (pathname)
   "Returns a new pathame that represents the last directory component
 of PATHSPEC."
-  (let ((directory (fad:pathname-as-directory pathspec)))
-    (fad:pathname-as-directory (first (last (pathname-directory directory))))))
+  (make-pathname :directory (pathname-directory pathname)))
 
 (defun ensure-file-exists (filespec)
   "Creates the file designated by FILESPEC, if it does not
@@ -81,7 +84,7 @@ exist. Returns the pathname of FILESPEC."
     (declare (ignorable stream)))
   (pathname filespec))
 
-(defun pathstring (pathspec)
+(defun pathstring (pathname)
   "Returns a string representing PATHNAME. This function is similar to
 CL:NAMESTRING, but is designed to be portable whereas the return value
 of CL:NAMESTRING is implementation-dependent."
@@ -91,8 +94,16 @@ of CL:NAMESTRING is implementation-dependent."
                    (cons (subseq str 0 esc-pos)
                          (unescape (subseq str (1+ esc-pos))))
                  (list str)))))
-    #+:ccl (apply #'concatenate 'string (unescape (namestring pathspec)))
-    #-:ccl (namestring pathspec)))
+    #+:ccl (apply #'concatenate 'string (unescape (namestring pathname)))
+    #-:ccl (namestring pathname)))
+
+(defun merge-pathstrings (pathname &optional
+                          (default-pathname *default-pathname-defaults*)
+                          (default-version :newest))
+  "Merges PATHNAME with defaults, using CL:MERGE-PATHNAMES, and calls
+{defun pathstring} on the result."
+  (pathstring (merge-pathnames (pathname pathname)
+                               default-pathname default-version)))
 
 (defun make-tmp-pathname (&key (tmpdir *default-tmpdir*) (basename "") type)
   "Returns a pathname suitable for use as a temporary file or
@@ -106,7 +117,7 @@ defaulting to NIL."
            :params 'tmpdir
            :args tmpdir
            :text "temporary file directory does not exist"))
-  (merge-pathnames (cl-fad:pathname-as-directory tmpdir)
+  (merge-pathnames (fad:pathname-as-directory tmpdir)
                    (make-pathname :directory '(:relative)
                                   :name (format nil "~a~a" basename
                                                 (random most-positive-fixnum))
@@ -121,8 +132,7 @@ that name already exists; options are :error which causes a FILE-ERROR
 to be raised, :supersede which causes the existing directory to be
 deleted and a new, empty one created and NIL where no directory is
 created an NIL is returned to indicate failure."
-  (let ((pathname (fad:pathname-as-directory
-                   (make-tmp-pathname :tmpdir tmpdir :basename basename))))
+  (let ((pathname (make-tmp-pathname :tmpdir tmpdir :basename basename)))
     (ecase if-exists
       (:error (if (fad:directory-exists-p pathname)
                   (error 'file-error :pathname pathname)))
@@ -130,16 +140,16 @@ created an NIL is returned to indicate failure."
                       (fad:delete-directory-and-files pathname)))
       ((nil) nil))
     ;; :mode is a non-ANSI extension to ensure-directories-exist in SBCL
-    (fad:pathname-as-directory (ensure-directories-exist pathname))))
+    (ensure-directories-exist (fad:pathname-as-directory pathname))))
 
-(defun make-pathname-gen (dir name &key type separator generator)
+(defun make-pathname-gen (directory name &key type separator generator)
   "Returns a function of zero arity that generates pathnames when
-called. The generated pathnames are relative to directory DIR and have
-a namestring composed of NAME, SEPARATOR (defaults to NIL) and a value
+called. The generated pathnames are relative to DIRECTORY and have a
+namestring composed of NAME, SEPARATOR (defaults to NIL) and a value
 taken from calling the function GENERATOR (defaults to a numeric
 generator starting from 0, incrementing by 1). TYPE may be used to
 specify the type of the new pathnames."
-  (let ((g (or generator (make-number-gen))))
+  (let ((gen (or generator (make-number-gen))))
     (flet ((gen-pname (d n s g y)
              (merge-pathnames
               (fad:pathname-as-directory d)
@@ -147,12 +157,14 @@ specify the type of the new pathnames."
                              :name (format nil "~a~@[~a~]~a" n s (next g))
                              :type y))))
       (lambda (op)
-        (let ((current (gen-pname dir name separator g type)))
+        (let ((current (gen-pname directory name separator
+                                  gen type)))
           (ecase op
             (:current current)
             (:next (prog1
                        current
-                     (setf current (gen-pname dir name separator g type))))
+                     (setf current (gen-pname directory name separator
+                                              gen type))))
             (:more t)))))))
 
 (defun make-pathname-ext (pathname &key type separator generator)
@@ -163,9 +175,9 @@ SEPARATOR (defaults to NIL) and a value taken from calling the
 function GENERATOR (defaults to a numeric generator starting from 0,
 incrementing by 1). TYPE may be used to specify the type of the new
 pathname, otherwise the original type will be used."
-  (let ((g (or generator (make-number-gen))))
+  (let ((gen (or generator (make-number-gen))))
     (lambda ()
       (make-pathname :directory (pathname-directory pathname)
                      :name (format nil "~a~@[~a~]~a" (pathname-name pathname)
-                                   separator (next g))
+                                   separator (next gen))
                      :type (or type (pathname-type pathname))))))
