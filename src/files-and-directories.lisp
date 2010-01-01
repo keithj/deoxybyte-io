@@ -1,5 +1,5 @@
 ;;;
-;;; Copyright (C) 2007-2009 Keith James. All rights reserved.
+;;; Copyright (C) 2007-2010 Keith James. All rights reserved.
 ;;;
 ;;; This file is part of deoxybyte-io.
 ;;;
@@ -112,11 +112,8 @@ defaulting to *DEFAULT-TMPDIR*. The NAME component of the new pathname
 is a concatenation of BASENAME, defaulting to an empty string, and a
 pseudo-random number. The type component of the new pathname is TYPE,
 defaulting to NIL."
-  (unless (cl-fad:directory-exists-p tmpdir)
-    (error 'invalid-argument-error
-           :params 'tmpdir
-           :args tmpdir
-           :text "temporary file directory does not exist"))
+  (check-arguments (cl-fad:directory-exists-p tmpdir) (tmpdir)
+                   "temporary file directory does not exist")
   (merge-pathnames (fad:pathname-as-directory tmpdir)
                    (make-pathname :directory '(:relative)
                                   :name (format nil "~a~a" basename

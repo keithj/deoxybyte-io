@@ -1,5 +1,5 @@
 ;;;
-;;; Copyright (C) 2008-2009 Keith James. All rights reserved.
+;;; Copyright (C) 2008-2010 Keith James. All rights reserved.
 ;;;
 ;;; This file is part of deoxybyte-io.
 ;;;
@@ -246,11 +246,9 @@ as command line help for the option.
 Returns:
 
 - A cli-option (list)."
-  (when (and required-option (null argument-type))
-    (error 'invalid-argument-error
-           :params '(required-option argument-type)
-           :args (list required-option argument-type)
-           :text "this type is incompatible with a required argument"))
+  (check-arguments (not (and required-option (null argument-type)))
+                   (required-option argument-type)
+                   "this type is incompatible with a required argument")
   (let ((argument-parser (ecase argument-type
                            (:string nil)
                            (:character #'parse-character)
@@ -301,11 +299,9 @@ parsing an argument string to the correct type."
 (defun cli-arg-value (option-key parsed-args)
   "Returns the value from PARSED-ARGS for the option named by the
 symbol OPTION-KEY."
-  (unless (cli-key-present-p option-key parsed-args)
-    (error 'invalid-argument-error
-           :params '(option-key parsed-args)
-           :args (list option-key parsed-args)
-           :text "there is no value for this key in the parsed arguments"))
+  (check-arguments (cli-key-present-p option-key parsed-args)
+                   (option-key parsed-args)
+                   "there is no value for this key in the parsed arguments")
   (assocdr option-key parsed-args))
 
 (defun cli-key-present-p (option-key parsed-args)

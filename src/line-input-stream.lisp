@@ -1,5 +1,5 @@
 ;;;
-;;; Copyright (C) 2007-2009 Keith James. All rights reserved.
+;;; Copyright (C) 2007-2010 Keith James. All rights reserved.
 ;;;
 ;;; This file is part of deoxybyte-io.
 ;;;
@@ -107,26 +107,23 @@ actually read."))
   "Returns a new {defclass character-line-input-stream} or
 {defclass binary-line-input-stream} wrapping STREAM. The element type
 of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
-  (unless (and (streamp stream)
-               (input-stream-p stream)
-               (open-stream-p stream))
-    (error 'invalid-argument-error
-           :params 'stream :args stream
-           :text "expected an open input-stream"))
+  (check-arguments (and (streamp stream)
+                        (input-stream-p stream)
+                        (open-stream-p stream)) (stream)
+                        "expected an open input-stream")
   (let ((elt-type (stream-element-type stream)))
     (cond ((subtypep elt-type 'character)
-           (make-instance 'character-line-input-stream
-                          :stream stream))
-          ((equal '(unsigned-byte 8) elt-type)
+           (make-instance 'character-line-input-stream :stream stream))
+          ((subtypep 'octet elt-type)
            (make-instance 'binary-line-input-stream
                           :stream stream
                           :nl-code (char-code #\Newline)
                           :buffer (make-array +byte-buffer-size+
-                                              :element-type '(unsigned-byte 8)
+                                              :element-type 'octet
                                               :initial-element 0)))
           (t
            (error 'invalid-argument-error
-                  :params 'stream :args stream
+                  :parameters 'stream :arguments stream
                   :text (format nil "invalid element type ~a from stream ~a"
                                 elt-type stream))))))
 
@@ -290,7 +287,7 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
            ;; it. Move the offset beyond the newline. Fill the buffer
            ;; if necessary.
              (let ((chunk (make-array (- nl-position offset)
-                                      :element-type '(unsigned-byte 8))))
+                                      :element-type 'octet)))
                (copy-array buffer offset (1- nl-position)
                            chunk 0)
                (setf (offset-of stream) (1+ nl-position))
@@ -301,7 +298,7 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
              ;; position. Make an empty chunk (for sake of
              ;; consistency). Move the offset beyond the newline. Fill
              ;; the buffer if necessary.
-             (let ((chunk (make-array 0 :element-type '(unsigned-byte 8))))
+             (let ((chunk (make-array 0 :element-type 'octet)))
                (setf (offset-of stream) (1+ nl-position))
                (values (list chunk) nil)))
             ((zerop num-bytes)
@@ -313,7 +310,7 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
              ;; it. Fill the buffer. Recursively call read chunks to
              ;; search for the next newline.
              (let ((chunk (make-array (- num-bytes offset)
-                                      :element-type '(unsigned-byte 8)))
+                                      :element-type 'octet))
                    (chunks nil)
                    (missing-nl-p t))
                (copy-array buffer offset (1- num-bytes)
@@ -368,9 +365,9 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
   "Concatenates the list of byte arrays CHUNKS by copying their
 contents into a new fixed length array, which is returned."
   (let ((line (make-array (reduce #'+ chunks :key #'length)
-                          :element-type '(unsigned-byte 8))))
+                          :element-type 'octet)))
     (loop
-       for chunk of-type (simple-array (unsigned-byte 8) (*)) in chunks
+       for chunk of-type simple-octet-vector in chunks
        for chunk-length = (length chunk)
        with offset = 0
        do (unless (zerop chunk-length)
