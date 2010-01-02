@@ -1,5 +1,5 @@
 ;;;
-;;; Copyright (C) 2007-2009 Keith James. All rights reserved.
+;;; Copyright (C) 2007-2010 Keith James. All rights reserved.
 ;;;
 ;;; This file is part of deoxybyte-io.
 ;;;
@@ -20,7 +20,8 @@
 (in-package :uk.co.deoxybyte-io-system)
 
 (defsystem deoxybyte-io-test
-  :depends-on (:deoxybyte-io)
+  :depends-on ((:version :lift "1.7.0")
+               :deoxybyte-io)
   :components ((:module :deoxybyte-io-test
                         :serial t
                         :pathname "src/test/"
