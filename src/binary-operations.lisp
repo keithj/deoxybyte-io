@@ -1,5 +1,5 @@
 ;;;
-;;; Copyright (C) 2009 Keith James. All rights reserved.
+;;; Copyright (C) 2009-2010 Keith James. All rights reserved.
 ;;;
 ;;; This file is part of deoxybyte-io.
 ;;;
@@ -40,16 +40,24 @@ Key:
            ((:big-endian :network-byte-order)
             (loop
                for i from (* 8 (1- bytes)) downto 0 by 8
-               collect i)))))
+               collect i))))
+        (int-type (if (< 0 bytes 5)
+                      `(or (signed-byte ,(* 8 bytes))
+                           (unsigned-byte ,(* 8 bytes)))
+                    'integer))
+        (speed (if (< 0 bytes 5)
+                   3
+                 1)))
     `(progn
       (declaim (inline ,name))
       (defun ,name (value buffer &optional (index 0))
         ,(format nil (txt "Encodes a ~a byte integer as consecutive bytes"
                           "in BUFFER, in ~a byte order, starting at INDEX.")
                  bytes (string-downcase (symbol-name order)))
-        ;; (declare (optimize (speed 3) (safety 1)))
-        (declare (type (simple-array (unsigned-byte 8) (*)) buffer)
-                 (type array-index index))
+        (declare (optimize (speed ,speed) (safety 1)))
+        (declare (type simple-octet-vector buffer)
+                 (type vector-index index)
+                 (type ,int-type value))
         ,@(loop
              for i from 0 below bytes
              for shift in byte-shifts
@@ -83,7 +91,10 @@ Key:
                for i from (* 8 (1- bytes)) downto 0 by 8
                collect i))))
         (mask (1- (ash 1 (* 8 bytes))))
-        (sign-bit (1- (* 8 bytes))))
+        (sign-bit (1- (* 8 bytes)))
+        (speed (if (< 0 bytes 5)
+                   3
+                 1)))
     `(progn
       (declaim (inline ,name))
       (defun ,name (buffer &optional (index 0))
@@ -91,9 +102,9 @@ Key:
                           "integer stored as consecutive bytes in BUFFER,"
                           "in ~a byte order, starting at INDEX.")
                  signed bytes (string-downcase (symbol-name order)))
-        ;; (declare (optimize (speed 3) (safety 1)))
-        (declare (type (simple-array (unsigned-byte 8) (*)) buffer)
-                 (type array-index index))
+        (declare (optimize (speed ,speed) (safety 1)))
+        (declare (type simple-octet-vector buffer)
+                 (type vector-index index))
         (let ((value (logior ,@(loop
                                   for i from 0 below bytes
                                   for shift in byte-shifts
