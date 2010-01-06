@@ -264,38 +264,6 @@
         (ensure (not found))
         (ensure (= 5 line-count))))))
 
-(addtest (deoxybyte-io-tests) pathstring/1
-  (ensure (string= "/foo/bar/baz.txt"
-                   (pathstring (pathname "/foo/bar/baz.txt"))))
-  ;; These tests ensure that we can unescape all the dots under CCL
-  (ensure (string= "/foo/bar.baz.txt"
-                   (pathstring (pathname "/foo/bar.baz.txt"))))
-  (ensure (string= "/foo/bar..baz.txt"
-                   (pathstring (pathname "/foo/bar..baz.txt")))))
-
-(addtest (deoxybyte-io-tests) make-tmp-pathname/1
-  ;; Test defaults
-  (ensure (pathnamep (make-tmp-pathname)))
-  (ensure (string= "/tmp/" (directory-namestring (make-tmp-pathname))))
-  (ensure (integerp (parse-integer (pathname-name (make-tmp-pathname)))))
-  (ensure-null (pathname-type (make-tmp-pathname)))
-  ;; Test optional arguments
-  (ensure (string= "/" (directory-namestring (make-tmp-pathname
-                                              :tmpdir "/"))))
-  (ensure (string= "tmp" (pathname-type (make-tmp-pathname :type "tmp"))))
-  (ensure (string= "foo" (pathname-name (make-tmp-pathname :tmpdir "/tmp"
-                                                           :basename "foo"))
-                   :end2 3))
-  (ensure (string= "bar" (pathname-type
-                          (make-tmp-pathname :tmpdir "/tmp"
-                                             :basename "foo"
-                                             :type "bar"))))
-  ;; Test error condition
-  (let ((bad-dir "/this-directory-does-not-exist/"))
-    (ensure (and (not (fad:directory-exists-p bad-dir))
-                 (ensure-condition invalid-argument-error
-                                   (make-tmp-pathname :tmpdir bad-dir))))))
-
 (addtest (deoxybyte-io-tests) make-tmp-directory/1
   ;; Test defaults
   (let ((tmpdir (make-tmp-directory)))

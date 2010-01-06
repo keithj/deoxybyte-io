@@ -51,19 +51,6 @@ or directory, or NIL otherwise."
 or directory, or NIL otherwise."
   (eql :relative (first (pathname-directory (pathname pathname)))))
 
-(defun parse-file (pathname)
-  "Returns a new pathame that represents the file component of
-PATHSPEC. Deprecated."
-  (warn 'deprecation-warning :feature 'parse-file :in-favour 'file-pathname)
-  (file-pathname pathname))
-
-(defun parse-directory (pathname)
-  "Returns a new pathame that represents the last directory component
-of PATHSPEC. Deprecated."
-  (warn 'deprecation-warning :feature 'parse-directory
-        :in-favour 'directory-pathname)
-  (directory-pathname pathname))
-
 (defun file-pathname (pathname)
   "Returns a new pathame that represents the file component of
 PATHSPEC."
@@ -71,9 +58,32 @@ PATHSPEC."
                  :type (pathname-type pathname)))
 
 (defun directory-pathname (pathname)
-  "Returns a new pathame that represents the last directory component
-of PATHSPEC."
+  "Returns a new pathame that represents the directory component of
+PATHSPEC."
   (make-pathname :directory (pathname-directory pathname)))
+
+(defun leaf-directory-pathname (pathname)
+  "Returns a new relative pathname that represents the leaf directory
+component of PATHSPEC."
+  (flet ((canonical (elts)
+           (let ((x ()))
+             (dolist (elt elts (reverse x))
+               (if (eql :up elt)
+                   (pop x)
+                 (push elt x)))))
+         (leading-ups (elts)
+           (subseq elts 0 (position-if #'stringp elts))))
+    (let* ((dir (pathname-directory pathname))
+           (canonical (canonical (rest dir))))
+      (cond ((and (eql :absolute (first dir)) (second canonical))
+             (make-pathname :directory (cons :relative (last canonical))))
+            ((eql :absolute (first dir))
+             (make-pathname :directory (cons :absolute (last canonical))))
+            (t
+             (make-pathname :directory
+                            (cons :relative ; leave any :up on relative path
+                                  (concatenate 'list (leading-ups (rest dir))
+                                               (last canonical)))))))))
 
 (defun ensure-file-exists (filespec)
   "Creates the file designated by FILESPEC, if it does not

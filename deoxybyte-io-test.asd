@@ -27,4 +27,5 @@
                         :pathname "src/test/"
                         :components ((:file "package")
                                      (:file "deoxybyte-io-test")
+                                     (:file "pathnames-test")
                                      (:file "binary-operations-test")))))
