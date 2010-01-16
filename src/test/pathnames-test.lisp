@@ -53,13 +53,12 @@
 
 (addtest (deoxybyte-io-tests) absolute-pathname-p/1
   (ensure (not (absolute-pathname-p "foo")))
-  (ensure (absolute-pathname-p "/foo"))
-  (ensure (absolute-pathname-p (pathname "/foo"))))
+  (ensure (absolute-pathname-p "/foo")))
 
 (addtest (deoxybyte-io-tests) relative-pathname-p/1
-  (ensure (not (relative-pathname-p "foo")))
+  (ensure (relative-pathname-p "foo"))
   (ensure (relative-pathname-p "./foo"))
-  (ensure (relative-pathname-p (pathname "./foo"))))
+  (ensure (relative-pathname-p "../foo")))
 
 (addtest (deoxybyte-io-tests) directory-pathname/1
   (ensure (equal (pathname "/") (directory-pathname "/foo")))

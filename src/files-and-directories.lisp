@@ -44,23 +44,23 @@ directory is deleted afterwards."
 (defun absolute-pathname-p (pathname)
   "Returns T if PATHSPEC is a pathname designator for an absolute file
 or directory, or NIL otherwise."
-  (eql :absolute (first (pathname-directory (pathname pathname)))))
+  (eql :absolute (first (pathname-directory pathname))))
 
 (defun relative-pathname-p (pathname)
   "Returns T if PATHSPEC is a pathname designator for a relative file
 or directory, or NIL otherwise."
-  (eql :relative (first (pathname-directory (pathname pathname)))))
+  (or (null (pathname-directory pathname))
+      (eql :relative (first (pathname-directory pathname)))))
 
 (defun file-pathname (pathname)
-  "Returns a new pathame that represents the file component of
+  "Returns a new pathname that represents the file component of
 PATHSPEC."
-  (make-pathname :name (pathname-name pathname)
-                 :type (pathname-type pathname)))
+  (pathname (file-namestring pathname)))
 
 (defun directory-pathname (pathname)
-  "Returns a new pathame that represents the directory component of
+  "Returns a new pathname that represents the directory component of
 PATHSPEC."
-  (make-pathname :directory (pathname-directory pathname)))
+  (pathname (directory-namestring pathname)))
 
 (defun leaf-directory-pathname (pathname)
   "Returns a new relative pathname that represents the leaf directory
@@ -76,14 +76,19 @@ component of PATHSPEC."
     (let* ((dir (pathname-directory pathname))
            (canonical (canonical (rest dir))))
       (cond ((and (eql :absolute (first dir)) (second canonical))
-             (make-pathname :directory (cons :relative (last canonical))))
+             (make-pathname
+              :directory (cons :relative (last canonical))
+              :name nil :type nil :defaults pathname))
             ((eql :absolute (first dir))
-             (make-pathname :directory (cons :absolute (last canonical))))
+             (make-pathname
+              :directory (cons :absolute (last canonical))
+              :name nil :type nil :defaults pathname))
             (t
-             (make-pathname :directory
-                            (cons :relative ; leave any :up on relative path
-                                  (concatenate 'list (leading-ups (rest dir))
-                                               (last canonical)))))))))
+             (make-pathname
+              :directory (cons :relative ; leave any :up on relative path
+                               (concatenate 'list (leading-ups (rest dir))
+                                            (last canonical)))
+              :name nil :type nil :defaults pathname))))))
 
 (defun ensure-file-exists (filespec)
   "Creates the file designated by FILESPEC, if it does not
