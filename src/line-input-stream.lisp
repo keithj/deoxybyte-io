@@ -170,17 +170,12 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
 (defmethod stream-read-sequence ((stream character-line-input-stream)
                                  sequence &optional (start 0) end)
   (let ((end (or end (length sequence))))
-    (stream-read-sequence-with-line-stack stream sequence start end
-                                          (lambda (stream)
-                                            (read-char stream nil)))))
+    (stream-read-sequence-with-line-stack stream sequence start end)))
 
 #+:lispworks
 (defmethod stream-read-sequence ((stream character-line-input-stream)
                                  sequence start end)
-  (stream-read-sequence-with-line-stack stream sequence start end
-                                        (lambda (stream)
-                                          (read-char stream nil))))
-
+  (stream-read-sequence-with-line-stack stream sequence start end))
 
 (defmethod stream-read-line ((stream character-line-input-stream))
   (if (null (line-stack-of stream))
@@ -188,6 +183,17 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
           (read-line (stream-of stream) nil :eof)
         (values line missing-newline-p))
     (pop (line-stack-of stream))))
+
+(defmethod stream-file-position ((stream character-line-input-stream)
+                                 &optional position)
+  (cond (position
+         (setf (line-stack-of stream) ())
+         (file-position (stream-of stream) position))
+        (t
+         (let ((buffered-chars (loop
+                                for line in (line-stack-of stream)
+                                sum (1+ (length line))))) ; 1+ for newline
+           (- (file-position (stream-of stream)) buffered-chars)))))
 
 (defmethod more-lines-p ((stream character-line-input-stream))
   (or (line-stack-of stream)
@@ -216,13 +222,12 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
 (defmethod stream-read-sequence ((stream binary-line-input-stream)
                                  sequence &optional (start 0) end)
   (let ((end (or end (length sequence))))
-    (stream-read-sequence-with-line-stack stream sequence start end
-                                          #'stream-read-byte)))
+    (stream-read-sequence-with-line-stack stream sequence start end)))
+
 #+:lispworks
 (defmethod stream-read-sequence ((stream binary-line-input-stream)
                                  sequence start end)
-  (stream-read-sequence-with-line-stack stream sequence start end
-                                        #'stream-read-byte))
+  (stream-read-sequence-with-line-stack stream sequence start end))
 
 (defmethod stream-read-line ((stream binary-line-input-stream))
   (if (null (line-stack-of stream))
@@ -332,34 +337,27 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
              (push-line stream copy)
              (aref line 0))))))
 
-(defun stream-read-sequence-with-line-stack (stream sequence start end read-fn)
-  (flet ((fill-from-stream (stream start end)
+(defun stream-read-sequence-with-line-stack (stream sequence start end)
+  (cond ((null (line-stack-of stream))
+         (read-sequence sequence (stream-of stream) :start start :end end))
+        (t
+         (let ((seq-index 0)
+               (line-stack (line-stack-of stream))
+               (line-part nil))
            (loop
-              for i from start below end
-              for elt = (funcall read-fn stream)
-              while elt
-              do (setf (elt sequence i) elt)
-              finally (return i))))
-    (cond ((null (line-stack-of stream))
-           (fill-from-stream stream start end))
-          (t
-           (let ((seq-index 0)
-                 (line-stack (line-stack-of stream))
-                 (line-part nil))
-             (loop
-                while (and line-stack (< seq-index end))
-                do (loop
-                      with line = (pop line-stack)
-                      for i from seq-index below end
-                      for j from 0 below (length line)
-                      do (setf (elt sequence i) (aref line j))
-                      finally (progn
-                                (incf seq-index j)
-                                (when (< j (length line))
-                                  (setf line-part (subseq line j)))))
-                finally (when line-part
-                          (push line-part line-stack)))
-             (fill-from-stream stream seq-index end))))))
+            while (and line-stack (< seq-index end))
+            do (loop
+                with line = (pop line-stack)
+                for i from seq-index below end
+                for j from 0 below (length line)
+                do (setf (elt sequence i) (aref line j))
+                finally (progn
+                          (incf seq-index j)
+                          (when (< j (length line))
+                            (setf line-part (subseq line j)))))
+            finally (when line-part
+                      (push line-part line-stack)))
+           (read-sequence sequence (stream-of stream) :start seq-index :end end)))))
 
 (defun concatenate-chunks (chunks)
   "Concatenates the list of byte arrays CHUNKS by copying their
