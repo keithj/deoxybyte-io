@@ -98,7 +98,7 @@ those fields have acceptable values."
                                       name parsed-fields form)))
                    (failed-constraints
                     (loop
-                       for (result . nil) on record-constraints
+                       for (result . nil) in record-constraints
                        when (null (cdr result))
                        collect (car result))))
               (when failed-constraints
@@ -173,18 +173,17 @@ END."
   "Returns a value parsed from LINE between START and END using PARSER
 and VALIDATOR."
   (declare (optimize (speed 3)))
-  (declare (type function parser validator))
+  (declare (type function parser validator)
+           (type simple-string line))
   (let ((parsed-value (funcall parser field-name line
                                :start start :end end
                                :null-str (or null-str *empty-field*))))
-    (handler-case
-        (when (funcall validator parsed-value)
-          parsed-value)
-      (error (condition)
-        (error 'field-validation-error
-               :field field-name
-               :text (format nil "validation error on value ~a: ~a"
-                             parsed-value condition))))))
+    (if (funcall validator parsed-value)
+        parsed-value
+      (error 'field-validation-error
+             :field field-name
+             :text (format nil "~s with parsed value ~a"
+                           (subseq line start end) parsed-value)))))
 
 (defun validate-record (name fields validator &rest field-names)
   "Returns a pair of constraint NAME and either T or NIL, indicating
