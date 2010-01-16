@@ -159,11 +159,10 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
         (t
          (let* ((line (pop (line-stack-of stream)))
                 (copy (make-array (1+ (length line))
-                                  :element-type (array-element-type line))))
+                                  :element-type (array-element-type line)
+                                  :initial-element #\Nul)))
            (setf (aref copy 0) char)
-           (copy-array line 0 (1- (length line))
-                       copy 1)
-           (push-line stream copy))))
+           (push-line stream (replace copy line :start1 1)))))
   nil)
 
 #+(or :sbcl :ccl)
@@ -292,13 +291,11 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
            ;; it. Move the offset beyond the newline. Fill the buffer
            ;; if necessary.
              (let ((chunk (make-array (- nl-position offset)
-                                      :element-type 'octet)))
-               (copy-array buffer offset (1- nl-position)
-                           chunk 0)
+                                      :element-type 'octet :initial-element 0)))
+               (replace chunk buffer :start2 offset :end2 nl-position)
                (setf (offset-of stream) (1+ nl-position))
                (values (list chunk) nil)))
-            ((and nl-position
-                  (zerop (- nl-position offset)))
+            ((and nl-position (zerop (- nl-position offset)))
              ;; There is a newline in the buffer at the zeroth
              ;; position. Make an empty chunk (for sake of
              ;; consistency). Move the offset beyond the newline. Fill
@@ -315,11 +312,10 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
              ;; it. Fill the buffer. Recursively call read chunks to
              ;; search for the next newline.
              (let ((chunk (make-array (- num-bytes offset)
-                                      :element-type 'octet))
+                                      :element-type 'octet :initial-element 0))
                    (chunks nil)
                    (missing-nl-p t))
-               (copy-array buffer offset (1- num-bytes)
-                           chunk 0)
+               (replace chunk buffer :start2 offset :end2 num-bytes)
                (fill-buffer stream)
                (multiple-value-setq (chunks missing-nl-p)
                  (read-chunks stream))
@@ -332,9 +328,7 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
           (t
            (let ((copy (make-array (1- (length line))
                                    :element-type (array-element-type line))))
-             (copy-array line 1 (1- (length line))
-                         copy 0)
-             (push-line stream copy)
+             (push-line stream (replace copy line :start2 1))
              (aref line 0))))))
 
 (defun stream-read-sequence-with-line-stack (stream sequence start end)
@@ -350,27 +344,27 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
                 with line = (pop line-stack)
                 for i from seq-index below end
                 for j from 0 below (length line)
-                do (setf (elt sequence i) (aref line j))
+                  do (setf (elt sequence i) (aref line j))
                 finally (progn
                           (incf seq-index j)
                           (when (< j (length line))
                             (setf line-part (subseq line j)))))
             finally (when line-part
                       (push line-part line-stack)))
-           (read-sequence sequence (stream-of stream) :start seq-index :end end)))))
+           (read-sequence sequence (stream-of stream)
+                          :start seq-index :end end)))))
 
 (defun concatenate-chunks (chunks)
   "Concatenates the list of byte arrays CHUNKS by copying their
 contents into a new fixed length array, which is returned."
   (let ((line (make-array (reduce #'+ chunks :key #'length)
-                          :element-type 'octet)))
+                          :element-type 'octet :initial-element 0)))
     (loop
        for chunk of-type simple-octet-vector in chunks
        for chunk-length = (length chunk)
        with offset = 0
        do (unless (zerop chunk-length)
-            (copy-array chunk 0 (1- chunk-length)
-                        line offset)
+            (replace line chunk :start1 offset)
             (incf offset chunk-length)))
     line))
 
