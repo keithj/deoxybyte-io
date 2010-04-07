@@ -145,6 +145,7 @@ Returns:
                 (stream-delete-file stream)
                 (close stream :abort t)))))))
 
+(declaim (inline merge-element))
 (defun merge-element (merge-streams predicate key)
   "Returns the next element from one of MERGE-STREAMS. The returned
 element is the on that sorts first according to PREDICATE and KEY, as

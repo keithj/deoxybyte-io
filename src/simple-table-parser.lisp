@@ -72,11 +72,9 @@ those fields have acceptable values."
         (multiple-value-bind (field-starts field-ends)
             (string-split-indices line ,delimiter)
           (declare (type list field-starts))
-          (unless (= ,field-count (length field-starts))
-            (error 'malformed-record-error
-                   :record line
-                   :text (format nil "invalid line: ~d fields instead of ~d"
-                                 (length field-starts) ,field-count)))
+          (check-record (= ,field-count (length field-starts)) line
+                          "invalid line: ~d fields instead of ~d"
+                          (length field-starts) ,field-count)
           (let* ((fargs (list ,@field-args))
                  (cargs (list ,@constraint-args))
                  (parsed-fields

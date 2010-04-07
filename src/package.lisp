@@ -105,6 +105,10 @@
      #:record-of
      #:field-of
 
+     ;; Parse utility macros
+     #:check-record
+     #:check-field
+
      ;; Environment variables
      #:environment-variable
 
