@@ -120,7 +120,7 @@ of CL:NAMESTRING is implementation-dependent."
   (pathstring (merge-pathnames (pathname pathname)
                                default-pathname default-version)))
 
-(defun make-tmp-pathname (&key (tmpdir *default-tmpdir*) (basename "") type)
+(defun tmp-pathname (&key (tmpdir *default-tmpdir*) (basename "") type)
   "Returns a pathname suitable for use as a temporary file or
 directory. The directory component of the new pathname is TMPDIR,
 defaulting to *DEFAULT-TMPDIR*. The NAME component of the new pathname
@@ -136,7 +136,7 @@ defaulting to NIL."
                                   :type type)))
 
 (defun make-tmp-directory (&key (tmpdir *default-tmpdir*) (basename "")
-                           (if-exists :error))
+                            (if-exists :error))
   "Creates a new temporary directory and returns its pathname. The new
 directory's pathname is created using {defun make-tmp-pathname} . The
 IF-EXISTS keyword argument determines what happens if a directory by
@@ -144,7 +144,7 @@ that name already exists; options are :error which causes a FILE-ERROR
 to be raised, :supersede which causes the existing directory to be
 deleted and a new, empty one created and NIL where no directory is
 created an NIL is returned to indicate failure."
-  (let ((pathname (make-tmp-pathname :tmpdir tmpdir :basename basename)))
+  (let ((pathname (tmp-pathname :tmpdir tmpdir :basename basename)))
     (ecase if-exists
       (:error (if (fad:directory-exists-p pathname)
                   (error 'file-error :pathname pathname)))
@@ -154,40 +154,38 @@ created an NIL is returned to indicate failure."
     ;; :mode is a non-ANSI extension to ensure-directories-exist in SBCL
     (ensure-directories-exist (fad:pathname-as-directory pathname))))
 
-(defun make-pathname-gen (directory name &key type separator generator)
+(defun pathname-generator (directory name &key type separator generator)
   "Returns a function of zero arity that generates pathnames when
 called. The generated pathnames are relative to DIRECTORY and have a
 namestring composed of NAME, SEPARATOR (defaults to NIL) and a value
 taken from calling the function GENERATOR (defaults to a numeric
 generator starting from 0, incrementing by 1). TYPE may be used to
 specify the type of the new pathnames."
-  (let ((gen (or generator (make-number-gen))))
+  (let ((gen (or generator (number-generator))))
     (flet ((gen-pname (d n s g y)
              (merge-pathnames
               (fad:pathname-as-directory d)
               (make-pathname :directory '(:relative)
                              :name (format nil "~a~@[~a~]~a" n s (next g))
                              :type y))))
-      (lambda (op)
-        (let ((current (gen-pname directory name separator
-                                  gen type)))
-          (ecase op
-            (:current current)
-            (:next (prog1
-                       current
-                     (setf current (gen-pname directory name separator
-                                              gen type))))
-            (:more t)))))))
+      (let ((current nil))
+        (defgenerator
+            (more t)
+            (next (let ((pname (gen-pname directory name separator gen type)))
+                    (prog1
+                        pname
+                      (setf current pname))))
+            (current current))))))
 
-(defun make-pathname-ext (pathname &key type separator generator)
-  "Returns a function of arity 1 that returns modified copies of a
+(defun pathname-extender (pathname &key type separator generator)
+  "Returns a function of zero arity that returns modified copies of a
 pathname argument. The pathname is modified by extending its
 namestring. The new namestring is composed of the original namestring
 SEPARATOR (defaults to NIL) and a value taken from calling the
 function GENERATOR (defaults to a numeric generator starting from 0,
 incrementing by 1). TYPE may be used to specify the type of the new
 pathname, otherwise the original type will be used."
-  (let ((gen (or generator (make-number-gen))))
+  (let ((gen (or generator (number-generator))))
     (lambda ()
       (make-pathname :directory (pathname-directory pathname)
                      :name (format nil "~a~@[~a~]~a" (pathname-name pathname)

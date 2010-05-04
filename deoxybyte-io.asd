@@ -31,12 +31,12 @@
 
 (defsystem deoxybyte-io
     :name "deoxybyte-io"
-    :version "0.5.7"
+    :version "0.6.0"
     :author "Keith James"
     :licence "GPL v3"
     :in-order-to ((test-op (load-op :deoxybyte-io :deoxybyte-io-test)))
     :depends-on ((:version :cl-fad "0.6.2")
-                 (:version :deoxybyte-utilities "0.5.6")
+                 (:version :deoxybyte-utilities "0.6.0")
                  (:version :getopt "1.0")
                  :ieee-floats)
     :components

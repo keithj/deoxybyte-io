@@ -28,28 +28,26 @@
   (ensure (string= "/foo/bar..baz.txt"
                    (pathstring (pathname "/foo/bar..baz.txt")))))
 
-(addtest (deoxybyte-io-tests) make-tmp-pathname/1
+(addtest (deoxybyte-io-tests) tmp-pathname/1
   ;; Test defaults
-  (ensure (pathnamep (make-tmp-pathname)))
-  (ensure (string= "/tmp/" (directory-namestring (make-tmp-pathname))))
-  (ensure (integerp (parse-integer (pathname-name (make-tmp-pathname)))))
-  (ensure-null (pathname-type (make-tmp-pathname)))
+  (ensure (pathnamep (tmp-pathname)))
+  (ensure (string= "/tmp/" (directory-namestring (tmp-pathname))))
+  (ensure (integerp (parse-integer (pathname-name (tmp-pathname)))))
+  (ensure-null (pathname-type (tmp-pathname)))
   ;; Test optional arguments
-  (ensure (string= "/" (directory-namestring (make-tmp-pathname
-                                              :tmpdir "/"))))
-  (ensure (string= "tmp" (pathname-type (make-tmp-pathname :type "tmp"))))
-  (ensure (string= "foo" (pathname-name (make-tmp-pathname :tmpdir "/tmp"
-                                                           :basename "foo"))
+  (ensure (string= "/" (directory-namestring (tmp-pathname :tmpdir "/"))))
+  (ensure (string= "tmp" (pathname-type (tmp-pathname :type "tmp"))))
+  (ensure (string= "foo" (pathname-name (tmp-pathname :tmpdir "/tmp"
+                                                      :basename "foo"))
                    :end2 3))
-  (ensure (string= "bar" (pathname-type
-                          (make-tmp-pathname :tmpdir "/tmp"
-                                             :basename "foo"
-                                             :type "bar"))))
+  (ensure (string= "bar" (pathname-type (tmp-pathname :tmpdir "/tmp"
+                                                      :basename "foo"
+                                                      :type "bar"))))
   ;; Test error condition
   (let ((bad-dir "/this-directory-does-not-exist/"))
     (ensure (and (not (fad:directory-exists-p bad-dir))
                  (ensure-condition invalid-argument-error
-                                   (make-tmp-pathname :tmpdir bad-dir))))))
+                                   (tmp-pathname :tmpdir bad-dir))))))
 
 (addtest (deoxybyte-io-tests) absolute-pathname-p/1
   (ensure (not (absolute-pathname-p "foo")))

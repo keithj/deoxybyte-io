@@ -38,7 +38,7 @@
 
 (defmethod make-merge-stream ((stream line-sort-input-stream) predicate
                               &key key (buffer-size 100000))
-  (let ((out (open (make-tmp-pathname :basename "line-merge-sort")
+  (let ((out (open (tmp-pathname :basename "line-merge-sort")
                    :direction :io
                    :element-type (stream-element-type stream)))
         (elements (make-array buffer-size :adjustable t :fill-pointer 0)))

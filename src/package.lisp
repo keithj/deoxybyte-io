@@ -122,11 +122,11 @@
      #:leaf-directory-pathname
      #:ensure-file-exists
      #:pathstring
-     #:make-tmp-pathname
+     #:tmp-pathname
      #:make-tmp-directory
      #:with-tmp-directory
-     #:make-pathname-gen
-     #:make-pathname-ext
+     #:pathname-generator
+     #:pathname-extender
 
      ;; CLI definition
      #:cli-error
