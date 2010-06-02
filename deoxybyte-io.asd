@@ -37,8 +37,7 @@
     :in-order-to ((test-op (load-op :deoxybyte-io :deoxybyte-io-test)))
     :depends-on ((:version :cl-fad "0.6.2")
                  (:version :deoxybyte-utilities "0.6.0")
-                 (:version :getopt "1.0")
-                 :ieee-floats)
+                 (:version :getopt "1.0"))
     :components
     ((:module :core
               :serial t
@@ -48,6 +47,7 @@
                            (:file "deoxybyte-io")
                            (:file "environment")
                            (:file "parse-float")
+                           (:file "ieee-float")
                            (:file "binary-operations")
                            (:file "streams")
                            (:file "line-input-stream")

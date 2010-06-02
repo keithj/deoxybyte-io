@@ -54,8 +54,6 @@ deoxybyte-utilities     git://github.com/keithj/deoxybyte-utilities.git
 
 cl-fad                  http://www.weitz.de/cl-fad/
 getopt                  git://git.b9.com/getopt.git
-ieee-floats             http://common-lisp.net/project/ieee-floats/
-
 
 Optional dependencies
 

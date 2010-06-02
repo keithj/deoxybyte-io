@@ -136,8 +136,8 @@ Key:
                                       (4 'encode-int32be)
                                       (8 'encode-int64be)))))
         (float-encoder (ecase bytes
-                         (4 'ieee-floats:encode-float32)
-                         (8 'ieee-floats:encode-float64))))
+                         (4 'encode-ieee-float32)
+                         (8 'encode-ieee-float64))))
     `(progn
        (defun ,name (value buffer &optional (index 0))
           ,(format nil (txt "Encodes ~a byte float as consecutive bytes in"
@@ -165,8 +165,8 @@ Key:
                                       (4 'decode-uint32be)
                                       (8 'decode-uint64be)))))
         (float-decoder (ecase bytes
-                         (4 'ieee-floats:decode-float32)
-                         (8 'ieee-floats:decode-float64))))
+                         (4 'decode-ieee-float32)
+                         (8 'decode-ieee-float64))))
     `(progn
        (defun ,name (buffer &optional (index 0))
          ,(format nil (txt "Decodes ~a byte float stored as consecutive bytes"

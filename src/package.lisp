@@ -213,6 +213,12 @@
      #:decode-int16be
      #:decode-int8be
 
+     #:encode-ieee-float32
+     #:encode-ieee-float64
+
+     #:decode-ieee-float32
+     #:decode-ieee-float64
+
      #:encode-float64le
      #:encode-float32le
 
