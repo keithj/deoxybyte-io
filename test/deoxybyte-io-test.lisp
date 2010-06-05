@@ -22,6 +22,9 @@
 (deftestsuite deoxybyte-io-tests ()
   ())
 
+(defun test-data-file (filespec)
+  (asdf:system-relative-pathname 'deoxybyte-io filespec))
+
 (defun as-bytes (str)
   (make-array (length str) :element-type 'octet
               :initial-contents (loop for c across str
@@ -51,7 +54,7 @@
 ;; sb-gray:stream-unread-char stream character
 
 (addtest (deoxybyte-io-tests) gray-common/1
-  (with-open-file (stream (merge-pathnames "data/test1.txt")
+  (with-open-file (stream (test-data-file "data/test1.txt")
                    :direction :input
                    :element-type 'base-char
                    :external-format :ascii)
@@ -65,7 +68,7 @@
        (stream-read-line s)))))
 
 (addtest (deoxybyte-io-tests) gray-common/2
-  (with-open-file (stream (merge-pathnames "data/test1.txt")
+  (with-open-file (stream (test-data-file "data/test1.txt")
                    :direction :input
                    :element-type 'octet)
     (let ((s (make-line-input-stream stream)))
@@ -78,7 +81,7 @@
        (stream-read-line s)))))
 
 (addtest (deoxybyte-io-tests) gray-input/1
-  (with-open-file (stream (merge-pathnames "data/test1.txt")
+  (with-open-file (stream (test-data-file "data/test1.txt")
                    :direction :input
                    :element-type 'base-char
                    :external-format :ascii)
@@ -93,7 +96,7 @@
       (ensure (string= "abcdefghij" b)))))
 
 (addtest (deoxybyte-io-tests) gray-input/2
-  (with-open-file (stream (merge-pathnames "data/test1.txt")
+  (with-open-file (stream (test-data-file "data/test1.txt")
                    :direction :input
                    :element-type 'octet)
     (let ((s (make-line-input-stream stream))
@@ -103,7 +106,7 @@
       (ensure (equalp (as-bytes "abcdefghij") b)))))
 
 (addtest (deoxybyte-io-tests) gray-binary/1
-  (with-open-file (stream (merge-pathnames "data/test1.txt")
+  (with-open-file (stream (test-data-file "data/test1.txt")
                    :direction :input
                    :element-type 'octet)
     (let ((s (make-line-input-stream stream))
@@ -112,7 +115,7 @@
            do (ensure (= byte (stream-read-byte s)))))))
 
 (addtest (deoxybyte-io-tests) gray-char/1
-  (with-open-file (stream (merge-pathnames "data/test1.txt")
+  (with-open-file (stream (test-data-file "data/test1.txt")
                    :direction :input
                    :element-type 'base-char
                    :external-format :ascii)
@@ -124,7 +127,7 @@
          do (ensure (char= char (stream-read-char s)))))))
 
 (addtest (deoxybyte-io-tests) stream-read-line/1
-  (with-open-file (stream (merge-pathnames "data/test1.txt")
+  (with-open-file (stream (test-data-file "data/test1.txt")
                    :direction :input
                    :element-type 'base-char
                    :external-format :ascii)
@@ -140,7 +143,7 @@
         (ensure missing-newline-p)))))
 
 (addtest (deoxybyte-io-tests) stream-read-line/2
-  (with-open-file (stream (merge-pathnames "data/test1.txt")
+  (with-open-file (stream (test-data-file "data/test1.txt")
                    :direction :input
                    :element-type 'octet)
     (let ((s (make-line-input-stream stream))
@@ -155,7 +158,7 @@
         (ensure missing-newline-p)))))
 
 (addtest (deoxybyte-io-tests) push-line/1
-  (with-open-file (stream (merge-pathnames "data/test1.txt")
+  (with-open-file (stream (test-data-file "data/test1.txt")
                    :direction :input
                    :element-type 'base-char
                    :external-format :ascii)
@@ -169,7 +172,7 @@
         (ensure (equalp line (stream-read-line s)))))))
 
 (addtest (deoxybyte-io-tests) push-line/2
-  (with-open-file (stream (merge-pathnames "data/test1.txt")
+  (with-open-file (stream (test-data-file "data/test1.txt")
                    :direction :input
                    :element-type 'octet)
     (let ((s (make-line-input-stream stream))
@@ -182,7 +185,7 @@
         (ensure (equalp line (stream-read-line s)))))))
 
 (addtest (deoxybyte-io-tests) missing-newline-p/1
-  (with-open-file (stream (merge-pathnames "data/test2.txt")
+  (with-open-file (stream (test-data-file "data/test2.txt")
                    :direction :input
                    :element-type 'base-char
                    :external-format :ascii)
@@ -202,7 +205,7 @@
         (ensure missing-newline-p)))))
 
 (addtest (deoxybyte-io-tests) missing-newline-p/2
-  (with-open-file (stream (merge-pathnames "data/test2.txt")
+  (with-open-file (stream (test-data-file "data/test2.txt")
                    :direction :input
                    :element-type 'octet)
     (let ((s (make-line-input-stream stream))
@@ -221,7 +224,7 @@
         (ensure missing-newline-p)))))
 
 (addtest (deoxybyte-io-tests) find-line/1
-  (with-open-file (stream (merge-pathnames "data/test3.txt")
+  (with-open-file (stream (test-data-file "data/test3.txt")
                    :direction :input
                    :element-type 'octet)
     (let ((s (make-line-input-stream stream))
@@ -293,7 +296,7 @@
                    (make-tmp-directory :tmpdir bad-dir))))))
 
 (addtest (deoxybyte-io-tests) ensure-file-exists/1
-  (let ((test-file (merge-pathnames "data/touch_test.txt")))
+  (let ((test-file (test-data-file "data/touch_test.txt")))
     (ensure (not (probe-file test-file)))
     (ensure-file-exists test-file)
     (ensure (probe-file test-file))

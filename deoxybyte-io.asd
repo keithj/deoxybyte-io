@@ -19,23 +19,18 @@
 
 (in-package :cl-user)
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (when (asdf:find-system :deoxybyte-systems nil)
-    (asdf:operate 'asdf:load-op :deoxybyte-systems)))
+(asdf:load-system :deoxybyte-systems)
 
-(defpackage :uk.co.deoxybyte-io-system
-  (:use :common-lisp :asdf)
-  (:import-from :deoxybyte-systems :lift-test-config :cldoc-config))
-
-(in-package :uk.co.deoxybyte-io-system)
+(in-package :uk.co.deoxybyte-systems)
 
 (defsystem deoxybyte-io
     :name "deoxybyte-io"
-    :version "0.6.0"
+    :version "0.6.1"
     :author "Keith James"
     :licence "GPL v3"
     :in-order-to ((test-op (load-op :deoxybyte-io :deoxybyte-io-test)))
-    :depends-on ((:version :cl-fad "0.6.2")
+    :depends-on (:deoxybyte-systems
+                 (:version :cl-fad "0.6.2")
                  (:version :deoxybyte-utilities "0.6.0")
                  (:version :getopt "1.0"))
     :components

@@ -17,7 +17,9 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
+(in-package :cl-user)
+
 (defpackage :uk.co.deoxybyte-io-test
   (:use #:common-lisp #:deoxybyte-io #:deoxybyte-utilities #:lift)
-  (:documentation "Deoxybyte IO tests.")
-  (:export #:deoxybyte-io-tests))
+  (:export #:deoxybyte-io-tests)
+  (:documentation "Deoxybyte IO tests."))

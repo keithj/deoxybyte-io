@@ -17,8 +17,6 @@
 ;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 
-(in-package :uk.co.deoxybyte-io-system)
-
 (defsystem deoxybyte-io-test
   :depends-on ((:version :lift "1.7.0")
                :deoxybyte-io)

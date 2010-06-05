@@ -37,6 +37,8 @@
 ;;; infinity.
 
 (defun encode-ieee-float32 (f)
+  "Encodes single-float F as a 32-bit integer using IEEE 754
+encoding."
   (let ((f (coerce f 'single-float)))
     (multiple-value-bind (significand exponent sign)
         (decode-float f)
@@ -50,11 +52,13 @@
               (setf (ldb (byte 8 23) n) (+ normalized-exp +exponent-bias-32+)
                     (ldb (byte 23 0) n) (round (* (1- normalized-signif)
                                                   +frac-factor-32+))))
-          (setf (ldb (byte 23 0) n) (ash (round (* significand +frac-factor-32+))
-                                         (- exponent +min-norm-exponent-32+))))
+          (setf (ldb (byte 23 0) n)     ; a denormalized float
+                (ash (round (* significand +frac-factor-32+))
+                     (- exponent +min-norm-exponent-32+))))
         n))))
 
 (defun decode-ieee-float32 (n)
+  "Decodes an IEEE 754 encoded single-float from 32-bit integer N."
   (let ((sign (if (zerop (ldb (byte 1 31) n))
                   1.0
                 -1.0))
@@ -68,6 +72,8 @@
     (* sign (scale-float (float significand) (- exponent 23)))))
 
 (defun encode-ieee-float64 (f)
+  "Encodes double-float F as a 64-bit integer using IEEE 754
+encoding."
   (let ((f (coerce f 'double-float)))
     (multiple-value-bind (significand exponent sign)
         (decode-float f)
@@ -81,11 +87,13 @@
               (setf (ldb (byte 11 52) n) (+ norm-exp +exponent-bias-64+)
                     (ldb (byte 52 0) n) (round (* (1- norm-signif)
                                                   +frac-factor-64+))))
-          (setf (ldb (byte 52 0) n) (ash (round (* significand +frac-factor-64+))
-                                         (- exponent +min-norm-exponent-64+))))
+          (setf (ldb (byte 52 0) n)     ; a denormalized float
+                (ash (round (* significand +frac-factor-64+))
+                     (- exponent +min-norm-exponent-64+))))
         n))))
 
 (defun decode-ieee-float64 (n)
+  "Decodes an IEEE 754 encoded double-float from 64-bit integer N."
   (let ((sign (if (zerop (ldb (byte 1 63) n))
                   1.0d0
                 -1.0d0))
