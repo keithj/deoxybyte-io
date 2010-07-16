@@ -77,7 +77,7 @@
       #+:lispworks ,@(list :stream-read-sequence
                            :stream-write-sequence))))
 
-(defmacro define-defpackage ()
+(defmacro define-deoxybyte-io-package ()
   `(defpackage :uk.co.deoxybyte-io
     (:use #:common-lisp #:deoxybyte-utilities)
     (:nicknames
@@ -93,7 +93,6 @@
      ;; IO conditions
      #:io-error
      #:io-warning
-     #:text-of
 
      ;; Parse conditions
      #:general-parse-error
@@ -263,4 +262,4 @@ includes:
 - Tabular text parsing
 - Binary encoding and decoding")))
 
-(define-defpackage)
+(define-deoxybyte-io-package)

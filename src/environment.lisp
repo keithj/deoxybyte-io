@@ -27,8 +27,9 @@
   #+:ccl (ccl:getenv variable-name)
   #+:lispworks (lispworks:environment-variable variable-name)
   #-(or :sbcl :ccl :lispworks)
-  (declare (ignore variable-name))
-  (error "Not implemented on ~a" (lisp-implementation-type)))
+  (progn
+    (declare (ignore variable-name))
+    (error "Not implemented on ~a" (lisp-implementation-type))))
 
 (defun (setf environment-variable) (value variable-name)
   "Sets the value of VARIABLE-NAME to VALUE, which maye be a string or
@@ -37,4 +38,5 @@ a symbol."
   #+:lispworks (setf (lispworks:environment-variable variable-name) value)
   #-(or :ccl :lispworks)
   (declare (ignore value variable-name))
+  #-(or :ccl :lispworks)
   (error "Not implemented on ~a" (lisp-implementation-type)))

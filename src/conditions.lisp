@@ -97,14 +97,11 @@ supplied."))
 
 
 ;;; Parse conditions
-(define-condition general-parse-error (io-error)
-  ((text :initform nil
-         :initarg :text
-         :reader text-of
-         :documentation "Error message text."))
+(define-condition general-parse-error (io-error formatted-condition)
+  ()
   (:report (lambda (condition stream)
              (format stream "General parse error~@[: ~a~]"
-                     (text-of condition))))
+                     (message-of condition))))
   (:documentation "The parent type of all parse error conditions."))
 
 (define-condition malformed-file-error (general-parse-error)
@@ -114,7 +111,7 @@ supplied."))
          :documentation "The malformed file."))
   (:report (lambda (condition stream)
              (format stream "Malformed file~@[ ~a ~]~@[: ~a~]"
-                     (file-of condition) (text-of condition))))
+                     (file-of condition) (message-of condition))))
   (:documentation "An error that is raised when a file is malformed
 for any reason."))
 
@@ -125,7 +122,7 @@ for any reason."))
            :documentation "The malformed record."))
   (:report (lambda (condition stream)
              (format stream "Malformed record~@[ ~a ~]~@[: ~a~]"
-                     (record-of condition) (text-of condition))))
+                     (record-of condition) (message-of condition))))
   (:documentation "An error that is raised when a record is malformed
 for any reason."))
 
@@ -133,7 +130,7 @@ for any reason."))
   ()
   (:report (lambda (condition stream)
              (format stream "Invalid record~@[ ~a ~]~@[: ~a~]"
-                     (record-of condition) (text-of condition))))
+                     (record-of condition) (message-of condition))))
   (:documentation "An error that is raised when a record fails
 validation of one or more of its parts."))
 
@@ -144,7 +141,7 @@ validation of one or more of its parts."))
           :documentation "The malformed field."))
   (:report (lambda (condition stream)
              (format stream "Malformed field~@[ ~a ~]~@[: ~a~]"
-                     (field-of condition) (text-of condition))))
+                     (field-of condition) (message-of condition))))
   (:documentation "An error that is raised when a field-based record
 contains a malformed field within it."))
 
@@ -152,6 +149,6 @@ contains a malformed field within it."))
   ()
   (:report (lambda (condition stream)
              (format stream "Invalid field~@[ ~a ~]~@[: ~a~]"
-                     (field-of condition) (text-of condition))))
+                     (field-of condition) (message-of condition))))
   (:documentation "An error that is raised when a record field fails
 validation."))

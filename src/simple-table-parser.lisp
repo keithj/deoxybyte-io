@@ -102,8 +102,8 @@ those fields have acceptable values."
               (when failed-constraints
                 (error 'record-validation-error
                        :record line
-                       :text (format nil "constraints ~a failed"
-                                     failed-constraints))))
+                       :format-control "constraints ~a failed"
+                       :format-arguments (list failed-constraints))))
             parsed-fields))))))
 
 (declaim (inline default-validator))
@@ -125,10 +125,7 @@ END."
       (handler-case
           (subseq str start end)
         (parse-error (condition)
-          (error 'malformed-field-error
-                 :field field-name
-                 :text (format nil "invalid field ~a: ~a"
-                               (subseq str start end) condition)))))))
+          (signal-malformed-field field-name str start end condition))))))
 
 (defun default-integer-parser (field-name str &key (start 0) end
                                (null-str *empty-field*))
@@ -143,10 +140,7 @@ START and END."
       (handler-case
           (parse-integer str :start start :end end)
         (parse-error (condition)
-          (error 'malformed-field-error
-                 :field field-name
-                 :text (format nil "invalid field ~a: ~a"
-                               (subseq str start end) condition)))))))
+          (signal-malformed-field field-name str start end condition))))))
 
 (defun default-float-parser (field-name str &key (start 0) end
                              (null-str *empty-field*))
@@ -161,10 +155,7 @@ END."
       (handler-case
           (parse-float str :start start :end end)
         (parse-error (condition)
-          (error 'malformed-field-error
-                 :field field-name
-                 :text (format nil "invalid field ~a: ~a"
-                               (subseq str start end) condition)))))))
+          (signal-malformed-field field-name str start end condition))))))
   
 (defun parse-field (field-name line start end null-str parser
                     &optional (validator #'default-validator))
@@ -180,8 +171,8 @@ and VALIDATOR."
         parsed-value
       (error 'field-validation-error
              :field field-name
-             :text (format nil "~s with parsed value ~a"
-                           (subseq line start end) parsed-value)))))
+             :format-control "~s with parsed value ~a"
+             :format-arguments (list (subseq line start end) parsed-value)))))
 
 (defun validate-record (name fields validator &rest field-names)
   "Returns a pair of constraint NAME and either T or NIL, indicating
@@ -194,9 +185,9 @@ FIELDS named by FIELD-NAMES."
                  (error (condition)
                    (error 'record-validation-error
                           :record name
-                          :text (format nil (txt "validator raised an error"
-                                                 "on field values ~a: ~a")
-                                        field-values condition)))))))
+                          :format-control (txt "validator raised an error"
+                                               "on field values ~a: ~a")
+                          :format-arguments (list field-values condition)))))))
 
 (defun collect-parser-args (field)
   "Returns an argument list form for FIELD to be used by PARSE-FIELD
@@ -229,3 +220,11 @@ quoting the field-names in FORM and re-ordering the elements."
     `(list ,validator ,@(mapcar (lambda (n)
                                   `(quote ,n))
                                 field-names))))
+
+(defun signal-malformed-field (field str start end reason)
+  "Signals a MALFORMED-FIELD-ERROR for FIELD in STR between START and
+END for REASON."
+  (error 'malformed-field-error
+         :field field
+         :format-control "invalid field ~a: ~a"
+         :format-arguments (list (subseq str start end) reason)))

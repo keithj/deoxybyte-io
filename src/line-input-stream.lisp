@@ -124,8 +124,8 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
           (t
            (error 'invalid-argument-error
                   :parameters 'stream :arguments stream
-                  :text (format nil "invalid element type ~a from stream ~a"
-                                elt-type stream))))))
+                  :format-string "invalid element type ~a from stream ~a"
+                  :format-arguments (list elt-type stream))))))
 
 ;;; line-input-stream methods
 (defmethod find-line ((stream line-input-stream) test
