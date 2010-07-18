@@ -154,10 +154,10 @@ required by the merge-sort algorithm."
   (declare (type simple-vector merge-streams)
            (type function predicate key))
   (loop
-     with x = (stream-head-of (svref merge-streams 0))
+     with x = (slot-value (svref merge-streams 0) 'stream-head)
      and x-index = 0
      for y-index from 0 below (length merge-streams)
-     for y = (stream-head-of (svref merge-streams y-index))
+     for y = (slot-value (svref merge-streams y-index) 'stream-head)
      when (and y (or (null x)
                      (funcall predicate (funcall key y)
                               x)))
