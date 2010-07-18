@@ -31,6 +31,7 @@ Key:
 - order (sumbol): the byte order of the array, may be one
   of :little-endian or :big-endian ( :network-byte-order may be used
   as a synonym for :big-endian )."
+  (assert (plusp bytes) () "must encode at least 1 byte")
   (let ((byte-shifts
          (ecase order
            (:little-endian
@@ -50,6 +51,10 @@ Key:
                  1)))
     `(progn
       (declaim (inline ,name))
+      (declaim (ftype (function (,int-type simple-octet-vector
+                                           &optional vector-index) 
+                                simple-octet-vector)
+                      ,name))
       (defun ,name (value buffer &optional (index 0))
         ,(format nil (txt "Encodes a ~a byte integer as consecutive bytes"
                           "in BUFFER, in ~a byte order, starting at INDEX.")
@@ -58,11 +63,11 @@ Key:
         (declare (type simple-octet-vector buffer)
                  (type vector-index index)
                  (type ,int-type value))
-        ,@(loop
-             for i from 0 below bytes
-             for shift in byte-shifts
-             collect `(setf (aref buffer (+ index ,i))
-                            (ldb (byte 8 ,shift) value)))
+        (setf ,@(loop
+                   for i from 0 below bytes
+                   for shift in byte-shifts
+                   nconc `((aref buffer (+ index ,i))
+                           (ldb (byte 8 ,shift) value))))
         buffer))))
 
 (defmacro define-integer-decoder (name &key (bytes 1) (order :little-endian)
@@ -80,6 +85,7 @@ Key:
   as a synonym for :big-endian ).
 - signed (boolean): T if the bytes are a two's complement
   representation of a signed integer."
+  (assert (plusp bytes) () "must decode at least 1 byte")
   (let ((byte-shifts
          (ecase order
            (:little-endian
@@ -92,11 +98,17 @@ Key:
                collect i))))
         (mask (1- (ash 1 (* 8 bytes))))
         (sign-bit (1- (* 8 bytes)))
+        (int-type (if signed
+                      `(signed-byte ,(* 8 bytes))
+                    `(unsigned-byte ,(* 8  bytes))))
         (speed (if (< 0 bytes 5)
                    3
                  1)))
     `(progn
       (declaim (inline ,name))
+      (declaim (ftype (function ((simple-octet-vector) &optional vector-index)
+                                ,int-type)
+                      ,name))
       (defun ,name (buffer &optional (index 0))
         ,(format nil (txt "Decodes ~:[an unsigned~;a signed~] ~a byte"
                           "integer stored as consecutive bytes in BUFFER,"
