@@ -140,8 +140,10 @@ validation of one or more of its parts."))
           :reader field-of
           :documentation "The malformed field."))
   (:report (lambda (condition stream)
-             (format stream "Malformed field~@[ ~a ~]~@[: ~a~]"
-                     (field-of condition) (message-of condition))))
+             (format stream
+                     "Malformed field~@[ ~a~]~@[ in record ~a~]~@[: ~a~]"
+                     (field-of condition) (record-of condition)
+                     (message-of condition))))
   (:documentation "An error that is raised when a field-based record
 contains a malformed field within it."))
 

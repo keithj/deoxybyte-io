@@ -43,7 +43,8 @@ Rest:
      (unless ,test-form
        (error 'malformed-record-error
               :record ,record
-              :text (format nil ,error-message ,@message-arguments)))
+              :format-control ,error-message
+              :format-arguments (list ,@message-arguments)))
      t))
 
 (defmacro check-field (test-form record field &optional error-message
@@ -72,5 +73,6 @@ Rest:
        (error 'malformed-field-error
               :record ,record
               :field ,field
-              :text (format nil ,error-message ,@message-arguments)))
+              :format-control ,error-message
+              :format-arguments (list ,@message-arguments)))
      t))
