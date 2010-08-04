@@ -40,13 +40,16 @@ Key:
   *ERROR-OUTPUT*."
   `(handler-bind
     ((error (lambda (condition)
-              (format *error-output* "~a~%" condition)
+              (format *error-output* "Error: ~a~%" condition)
               ,(if error-file
                    `(with-open-file (stream ,error-file
                                      :direction :output
                                      :if-does-not-exist :create
                                      :if-exists :append)
-                     (print-backtrace condition stream))
+                      (format stream "Error: ~a~%" condition)
+                      (terpri stream)
+                      (write-line "Backtrace:" stream)
+                      (print-backtrace condition stream))
                    '(print-backtrace condition *error-output*))
               ,(when quit
                      `(quit-lisp :status ,error-status)))))
@@ -318,6 +321,8 @@ symbol OPTION-KEY."
           (cli-opt-documentation option)))
 
 (defun getopt-options (options)
+  "Parses OPTIONS and returns a list of option definitions compatible
+with GETOPT:GETOPT ."
   (flet ((getopt-keyword (opt)
            (cond ((cli-arg-required-p opt)
                   :required)
@@ -344,10 +349,8 @@ raises an {define-condition incompatible-argument} error."
       (funcall (cli-arg-parser option) value)
     (parse-error (condition)
       (declare (ignore condition))
-      (error 'incompatible-argument
-             :option (cli-opt-name option)
-             :type (cli-arg-type option)
-             :argument value))))
+      (error 'incompatible-argument :option (cli-opt-name option)
+             :type (cli-arg-type option) :argument value))))
 
 (defun parse-character (string)
   "Returns a character parsed from STRING of length 1 character."
