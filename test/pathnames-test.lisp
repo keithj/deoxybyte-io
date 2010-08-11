@@ -45,9 +45,9 @@
                                                       :type "bar"))))
   ;; Test error condition
   (let ((bad-dir "/this-directory-does-not-exist/"))
-    (ensure (and (not (fad:directory-exists-p bad-dir))
-                 (ensure-condition invalid-argument-error
-                                   (tmp-pathname :tmpdir bad-dir))))))
+    (ensure (not (fad:directory-exists-p bad-dir)))
+    (ensure-condition invalid-argument-error
+      (tmp-pathname :tmpdir bad-dir))))
 
 (addtest (deoxybyte-io-tests) absolute-pathname-p/1
   (ensure (not (absolute-pathname-p "foo")))

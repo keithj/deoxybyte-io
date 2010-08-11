@@ -291,9 +291,9 @@
       (fad:delete-directory-and-files tmpdir)))
   ;; Test error conditions
   (let ((bad-dir "/this-directory-does-not-exist/"))
-    (ensure (and (not (fad:directory-exists-p bad-dir))
-                 (ensure-condition invalid-argument-error
-                   (make-tmp-directory :tmpdir bad-dir))))))
+    (ensure (not (fad:directory-exists-p bad-dir)))
+    (ensure-condition invalid-argument-error
+      (make-tmp-directory :tmpdir bad-dir))))
 
 (addtest (deoxybyte-io-tests) ensure-file-exists/1
   (let ((test-file (test-data-file "data/touch_test.txt")))
