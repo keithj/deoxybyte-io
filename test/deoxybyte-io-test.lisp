@@ -89,9 +89,9 @@
           (b (make-array 10 :element-type 'character)))
       ;; stream-clear-input should empty the line buffer
       (push-line s "aaaa")
-      (ensure (deoxybyte-io::line-stack-of s))
+      (ensure (slot-value s 'deoxybyte-io::line-stack))
       (ensure-null (stream-clear-input s))
-      (ensure (not (deoxybyte-io::line-stack-of s)))
+      (ensure (not (slot-value s 'deoxybyte-io::line-stack)))
       (ensure (= 10 (stream-read-sequence s b 0 (length b))))
       (ensure (string= "abcdefghij" b)))))
 

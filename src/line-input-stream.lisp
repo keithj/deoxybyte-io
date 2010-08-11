@@ -33,10 +33,8 @@ buffer."
 buffer."
   `(integer 0 ,+byte-buffer-size+))
 
-
 (defclass line-input-stream (wrapped-stream-mixin)
   ((line-stack :initform nil
-               :accessor line-stack-of
                :documentation "A list of lines that have been pushed
 back into the stream to be read again."))
   (:documentation "A line-based stream that allows lines to be pushed
@@ -52,17 +50,13 @@ strings."))
                                     fundamental-binary-input-stream)
   ((buffer :initarg :buffer
            :initform nil
-           :reader buffer-of
            :documentation "The buffer from which lines are read.")
    (nl-code :initarg :nl-code
-            :reader nl-code-of
             :documentation "The newline character code.")
    (num-bytes :initform 0
-              :accessor num-bytes-of
               :documentation "The number of bytes that were read into
 the buffer from the stream.")
    (offset :initform 0
-           :accessor offset-of
            :documentation "The offset in the byte buffer from which
 the next byte is to be read."))
   (:documentation "A {defclass line-input-stream} whose lines are
@@ -82,25 +76,6 @@ unread data."))
   (:documentation "Iterates through lines read from LINE-INPUT-STREAM
 until a line matching predicate TEST is found or until a number of
 lines equal to MAX-LINES have been examined."))
-
-
-;;; binary-line-input-stream generic functions
-(defgeneric read-chunks (binary-line-input-stream)
-  (:documentation "Reads chunks of bytes up to the next newline or end
-of stream, returning them in a list. The newline is not
-included. Returns two values - a list of chunks and either NIL or T to
-indicate whether a terminating newline was missing. When the stream
-underlying the buffer is exhausted the list of chunks will be empty."))
-
-(defgeneric buffer-empty-p (binary-line-input-stream)
-  (:documentation "Returns T if the internal byte buffer of
-BINARY-LINE-INPUT-STREAM is empty."))
-
-(defgeneric fill-buffer (binary-line-input-stream)
-  (:documentation "Fills the byte buffer of BINARY-LINE-INPUT-STREAM
-from its stream, setting the num-bytes slot to the number of bytes
-actually read."))
-
 
 ;;; line-input-stream constructor
 (defun make-line-input-stream (stream)
@@ -142,27 +117,31 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
 
 ;;; character-line-input-stream methods
 (defmethod stream-clear-input ((stream character-line-input-stream))
-  (setf (line-stack-of stream) nil))
+  (setf (slot-value stream 'line-stack) nil))
 
 (defmethod stream-read-char ((stream character-line-input-stream))
-  (if (null (line-stack-of stream))
-      (read-char (stream-of stream) nil :eof)
-    (read-elt-from-line-stack stream)))
+  (with-slots ((s stream) line-stack)
+      stream
+    (if (null line-stack)
+        (read-char s nil :eof)
+        (read-elt-from-line-stack s))))
 
 (defmethod stream-unread-char ((stream character-line-input-stream)
                                (char character))
-  (cond ((null (line-stack-of stream))
-         (unread-char char (stream-of stream)))
-        ((char= #\Newline char)
-         (push-line stream (make-array 0 :element-type (cl:type-of char))))
-        (t
-         (let* ((line (pop (line-stack-of stream)))
-                (copy (make-array (1+ (length line))
-                                  :element-type (array-element-type line)
-                                  :initial-element #\Nul)))
-           (setf (aref copy 0) char)
-           (push-line stream (replace copy line :start1 1)))))
-  nil)
+  (with-slots ((s stream) line-stack)
+      stream
+    (cond ((null line-stack)
+           (unread-char char s))
+          ((char= #\Newline char)
+           (push (make-array 0 :element-type (cl:type-of char)) line-stack))
+          (t
+           (let* ((line (pop line-stack))
+                  (copy (make-array (1+ (length line))
+                                    :element-type (array-element-type line)
+                                    :initial-element #\Nul)))
+             (setf (aref copy 0) char)
+             (push (replace copy line :start1 1) line-stack))))
+    nil))
 
 #+(or :sbcl :ccl)
 (defmethod stream-read-sequence ((stream character-line-input-stream)
@@ -176,45 +155,54 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
   (stream-read-sequence-with-line-stack stream sequence start end))
 
 (defmethod stream-read-line ((stream character-line-input-stream))
-  (if (null (line-stack-of stream))
-      (multiple-value-bind (line missing-newline-p)
-          (read-line (stream-of stream) nil :eof)
-        (values line missing-newline-p))
-    (pop (line-stack-of stream))))
+   (with-slots ((s stream) line-stack)
+       stream
+     (if (null line-stack)
+         (multiple-value-bind (line missing-newline-p)
+             (read-line s nil :eof)
+           (values line missing-newline-p))
+         (pop line-stack))))
 
 (defmethod stream-file-position ((stream character-line-input-stream)
                                  &optional position)
+  (with-slots ((s stream) line-stack)
+      stream
   (cond (position
-         (setf (line-stack-of stream) ())
-         (file-position (stream-of stream) position))
+         (setf line-stack ())
+         (file-position s position))
         (t
          (let ((buffered-chars (loop
-                                for line in (line-stack-of stream)
-                                sum (1+ (length line))))) ; 1+ for newline
-           (- (file-position (stream-of stream)) buffered-chars)))))
+                                  for line in line-stack
+                                  sum (1+ (length line))))) ; 1+ for newline
+           (- (file-position s) buffered-chars))))))
 
 (defmethod more-lines-p ((stream character-line-input-stream))
-  (or (line-stack-of stream)
-      (not (eql :eof (peek-char nil (stream-of stream) nil :eof)))))
+  (with-slots ((s stream) line-stack)
+      stream
+    (or line-stack (not (eql :eof (peek-char nil s nil :eof))))))
 
 (defmethod push-line ((stream character-line-input-stream) (line string))
-  (push line (line-stack-of stream)))
+  (push line (slot-value stream 'line-stack)))
 
 ;;; binary-line-input-stream methods
 (defmethod stream-clear-input ((stream binary-line-input-stream))
-  (setf (offset-of stream) 0
-        (num-bytes-of stream) 0
-        (line-stack-of stream) ()))
+  (with-slots (offset num-bytes line-stack)
+      stream
+    (setf offset 0
+          num-bytes 0
+          line-stack ())))
 
 (defmethod stream-read-byte ((stream binary-line-input-stream))
-  (cond ((and (null (line-stack-of stream)) (buffer-empty-p stream))
-         (read-byte (stream-of stream)))
-        ((null (line-stack-of stream))
-         (prog1
-             (aref (buffer-of stream) (offset-of stream))
-           (incf (offset-of stream))))
-        (t
-         (read-elt-from-line-stack stream))))
+  (with-slots ((s stream) buffer offset num-bytes line-stack)
+      stream
+    (cond ((and (null line-stack) (buffer-empty-p offset num-bytes))
+           (read-byte s))
+          ((null line-stack)
+           (prog1
+               (aref buffer offset)
+             (incf offset)))
+          (t
+           (read-elt-from-line-stack stream)))))
 
 #+(or :sbcl :ccl)
 (defmethod stream-read-sequence ((stream binary-line-input-stream)
@@ -228,130 +216,146 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
   (stream-read-sequence-with-line-stack stream sequence start end))
 
 (defmethod stream-read-line ((stream binary-line-input-stream))
-  (if (null (line-stack-of stream))
-      (multiple-value-bind (chunks has-newline-p)
-          (read-chunks stream)
-        (cond ((null chunks)
-               (values :eof t))
-              ((zerop (length (first chunks)))
-               (first chunks))
-              ((= 1 (length chunks))
-               (values (first chunks) has-newline-p))
-              (t
-               (values (concatenate-chunks chunks) has-newline-p))))
-    (pop (line-stack-of stream))))
+  (with-slots (line-stack)
+      stream
+    (if (null line-stack)
+        (multiple-value-bind (chunks has-newline-p)
+            (read-chunks stream)
+          (cond ((null chunks)
+                 (values :eof t))
+                ((zerop (length (first chunks)))
+                 (first chunks))
+                ((= 1 (length chunks))
+                 (values (first chunks) has-newline-p))
+                (t
+                 (values (concatenate-chunks chunks) has-newline-p))))
+        (pop line-stack))))
 
 (defmethod stream-file-position ((stream binary-line-input-stream)
                                  &optional position)
-  (cond (position
-         (setf (num-bytes-of stream) 0
-               (offset-of stream) 0
-               (line-stack-of stream) ())
-         (file-position (stream-of stream) position))
-        (t (- (file-position (stream-of stream))
-              (- (num-bytes-of stream) (offset-of stream))))))
-
-(defmethod more-lines-p :before ((stream binary-line-input-stream))
-  (when (zerop (num-bytes-of stream))
-    (read-chunks stream)))
+  (with-slots ((s stream) offset num-bytes line-stack)
+      stream
+    (cond (position
+           (setf num-bytes 0
+                 offset 0
+                 line-stack ())
+           (file-position s position))
+          (t
+           (- (file-position s) (- num-bytes offset))))))
 
 (defmethod more-lines-p ((stream binary-line-input-stream))
-  (or (line-stack-of stream)
-      (not (zerop (num-bytes-of stream)))))
+  (with-slots ((s stream) buffer offset num-bytes line-stack)
+      stream
+    (when (zerop num-bytes)
+      (setf offset 0
+            num-bytes (read-sequence buffer s))
+      (or line-stack
+          (not (zerop num-bytes))))))
 
 (defmethod push-line ((stream binary-line-input-stream) (line vector))
-  (push line (line-stack-of stream)))
+  (with-slots (line-stack)
+      stream
+    (push line line-stack)))
 
-(defmethod buffer-empty-p ((stream binary-line-input-stream))
-  (= (offset-of stream) (num-bytes-of stream)))
-
-(defmethod fill-buffer ((stream binary-line-input-stream))
-  (setf (offset-of stream) 0
-        (num-bytes-of stream) (read-sequence (buffer-of stream)
-                                             (stream-of stream))))
-
-(defmethod read-chunks :before ((stream binary-line-input-stream))
-  (when (buffer-empty-p stream)
-    (fill-buffer stream)))
-
-(defmethod read-chunks ((stream binary-line-input-stream))
+(defun read-chunks (stream)
+  "Reads chunks of bytes up to the next newline or end of stream,
+returning them in a list. The newline is not included. Returns two
+values - a list of chunks and either NIL or T to indicate whether a
+terminating newline was missing. When the stream underlying the buffer
+is exhausted the list of chunks will be empty."
   (declare (optimize (speed 3) (safety 0)))
-  (let ((offset (offset-of stream))
-        (num-bytes (num-bytes-of stream))
-        (buffer (buffer-of stream)))
+  (with-slots ((s stream) buffer offset num-bytes nl-code)
+      stream
     (declare (type byte-buffer buffer)
              (type byte-buffer-index offset num-bytes))
-    (let ((nl-position (position (nl-code-of stream) buffer
-                                 :start offset :end num-bytes)))
-      (cond ((and nl-position
-                  (plusp (- nl-position offset)))
-           ;; There is a newline in the buffer, but not at the zeroth
-           ;; position. Make a chunk and copy up to the newline into
-           ;; it. Move the offset beyond the newline. Fill the buffer
-           ;; if necessary.
-             (let ((chunk (make-array (- nl-position offset)
-                                      :element-type 'octet :initial-element 0)))
-               (replace chunk buffer :start2 offset :end2 nl-position)
-               (setf (offset-of stream) (1+ nl-position))
-               (values (list chunk) nil)))
-            ((and nl-position (zerop (- nl-position offset)))
-             ;; There is a newline in the buffer at the zeroth
-             ;; position. Make an empty chunk (for sake of
-             ;; consistency). Move the offset beyond the newline. Fill
-             ;; the buffer if necessary.
-             (let ((chunk (make-array 0 :element-type 'octet)))
-               (setf (offset-of stream) (1+ nl-position))
-               (values (list chunk) nil)))
-            ((zerop num-bytes)
-             ;; The buffer is empty
-             (values nil t))
-            (t
-             ;; There is no newline in the buffer. Make a chunk to
-             ;; contain the rest of the buffered bytes and copy into
-             ;; it. Fill the buffer. Recursively call read chunks to
-             ;; search for the next newline.
-             (let ((chunk (make-array (- num-bytes offset)
-                                      :element-type 'octet :initial-element 0))
-                   (chunks nil)
-                   (missing-nl-p t))
-               (replace chunk buffer :start2 offset :end2 num-bytes)
-               (fill-buffer stream)
-               (multiple-value-setq (chunks missing-nl-p)
-                 (read-chunks stream))
-               (values (cons chunk chunks) missing-nl-p)))))))
+    (labels ((fill-buffer ()
+               (setf offset 0
+                     num-bytes (read-sequence buffer s)))
+             (more-chunks ()
+               (let ((nl-position (position nl-code buffer
+                                            :start offset :end num-bytes)))
+                 (cond ((and nl-position(plusp (- nl-position offset)))
+                        ;; There is a newline in the buffer, but not
+                        ;; at the zeroth position. Make a chunk, copy
+                        ;; up to the newline into it, move the offset
+                        ;; beyond the newline.
+                        (let ((chunk (make-array (- nl-position offset)
+                                                 :element-type 'octet
+                                                 :initial-element 0)))
+                          (replace chunk buffer :start2 offset
+                                   :end2 nl-position)
+                          (setf offset (1+ nl-position))
+                          (values (list chunk) nil)))
+                       ((and nl-position (zerop (- nl-position offset)))
+                        ;; There is a newline in the buffer at the
+                        ;; zeroth position. Make an empty chunk (for
+                        ;; sake of consistency), move the offset
+                        ;; beyond the newline.
+                        (let ((chunk (make-array 0 :element-type 'octet)))
+                          (setf offset (1+ nl-position))
+                          (values (list chunk) nil)))
+                       ((zerop num-bytes)
+                        ;; The buffer is empty
+                        (values nil t))
+                       (t
+                        ;; There is no newline in the buffer. Make a
+                        ;; chunk to contain the rest of the buffered
+                        ;; bytes and copy into it, fill the buffer,
+                        ;; recursively call to search for the next
+                        ;; newline.
+                        (let ((chunk (make-array (- num-bytes offset)
+                                                 :element-type 'octet
+                                                 :initial-element 0))
+                              (chunks nil)
+                              (missing-nl-p t))
+                          (replace chunk buffer :start2 offset :end2 num-bytes)
+                          (fill-buffer)
+                          (multiple-value-setq (chunks missing-nl-p)
+                            (more-chunks))
+                          (values (cons chunk chunks) missing-nl-p)))))))
+      (when (buffer-empty-p offset num-bytes)
+        (fill-buffer))
+      (more-chunks))))
+
+(defun buffer-empty-p (offset num-bytes)
+  "Returns T if the internal byte buffer of BINARY-LINE-INPUT-STREAM
+is empty."
+  (= offset num-bytes))
 
 (defun read-elt-from-line-stack (stream)
-  (let ((line (pop (line-stack-of stream))))
-    (cond ((= 1 (length line))
-           (aref line 0))
-          (t
-           (let ((copy (make-array (1- (length line))
-                                   :element-type (array-element-type line))))
-             (push-line stream (replace copy line :start2 1))
-             (aref line 0))))))
+  (with-slots (line-stack)
+      stream
+    (let ((line (pop line-stack)))
+      (cond ((= 1 (length line))
+             (aref line 0))
+            (t
+             (let ((copy (make-array (1- (length line))
+                                     :element-type (array-element-type line))))
+               (push (replace copy line :start2 1) line-stack)
+               (aref line 0)))))))
 
 (defun stream-read-sequence-with-line-stack (stream sequence start end)
-  (cond ((null (line-stack-of stream))
-         (read-sequence sequence (stream-of stream) :start start :end end))
-        (t
-         (let ((seq-index 0)
-               (line-stack (line-stack-of stream))
-               (line-part nil))
-           (loop
-            while (and line-stack (< seq-index end))
-            do (loop
-                with line = (pop line-stack)
-                for i from seq-index below end
-                for j from 0 below (length line)
-                  do (setf (elt sequence i) (aref line j))
-                finally (progn
-                          (incf seq-index j)
-                          (when (< j (length line))
-                            (setf line-part (subseq line j)))))
-            finally (when line-part
-                      (push line-part line-stack)))
-           (read-sequence sequence (stream-of stream)
-                          :start seq-index :end end)))))
+  (with-slots ((s stream) line-stack)
+      stream
+    (cond ((null line-stack)
+           (read-sequence sequence s :start start :end end))
+          (t
+           (let ((seq-index 0)
+                 (line-part nil))
+             (loop
+                while (and line-stack (< seq-index end))
+                do (loop
+                      with line = (pop line-stack)
+                      for i from seq-index below end
+                      for j from 0 below (length line)
+                      do (setf (elt sequence i) (aref line j))
+                      finally (progn
+                                (incf seq-index j)
+                                (when (< j (length line))
+                                  (setf line-part (subseq line j)))))
+                finally (when line-part
+                          (push line-part line-stack)))
+             (read-sequence sequence s :start seq-index :end end))))))
 
 (defun concatenate-chunks (chunks)
   "Concatenates the list of byte arrays CHUNKS by copying their
