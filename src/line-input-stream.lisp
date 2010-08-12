@@ -51,8 +51,9 @@ strings."))
   ((buffer :initarg :buffer
            :initform nil
            :documentation "The buffer from which lines are read.")
-   (nl-code :initarg :nl-code
-            :documentation "The newline character code.")
+   (eol-code :initarg :eol-code
+            :documentation "The end of line character code. If two
+characters are used, this is the first of the pair.")
    (num-bytes :initform 0
               :documentation "The number of bytes that were read into
 the buffer from the stream.")
@@ -62,7 +63,6 @@ the next byte is to be read."))
   (:documentation "A {defclass line-input-stream} whose lines are
 arrays of bytes. Allows buffered reading of lines of (unsigned-byte 8)
 from a stream."))
-
 
 ;;; line-input-stream generic functions
 (defgeneric more-lines-p (line-input-stream)
@@ -81,7 +81,7 @@ lines equal to MAX-LINES have been examined."))
 (defun make-line-input-stream (stream)
   "Returns a new {defclass character-line-input-stream} or
 {defclass binary-line-input-stream} wrapping STREAM. The element type
-of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
+of STREAM must be either a subtype of CHARACTER or (UNSIGNED-BYTE 8)."
   (check-arguments (and (streamp stream)
                         (input-stream-p stream)
                         (open-stream-p stream)) (stream)
@@ -92,7 +92,7 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
           ((subtypep 'octet elt-type)
            (make-instance 'binary-line-input-stream
                           :stream stream
-                          :nl-code (char-code #\Newline)
+                          :eol-code (char-code #\Newline)
                           :buffer (make-array +byte-buffer-size+
                                               :element-type 'octet
                                               :initial-element 0)))
@@ -114,7 +114,6 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
                  (= line-count max-lines)))
         (values line matching-line-p line-count))))
 
-
 ;;; character-line-input-stream methods
 (defmethod stream-clear-input ((stream character-line-input-stream))
   (setf (slot-value stream 'line-stack) nil))
@@ -128,11 +127,11 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
 
 (defmethod stream-unread-char ((stream character-line-input-stream)
                                (char character))
-  (with-slots ((s stream) line-stack)
+  (with-slots ((s stream) eol-code line-stack)
       stream
     (cond ((null line-stack)
            (unread-char char s))
-          ((char= #\Newline char)
+          ((char= (code-char eol-code) char)
            (push (make-array 0 :element-type (cl:type-of char)) line-stack))
           (t
            (let* ((line (pop line-stack))
@@ -158,9 +157,9 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
    (with-slots ((s stream) line-stack)
        stream
      (if (null line-stack)
-         (multiple-value-bind (line missing-newline-p)
+         (multiple-value-bind (line missing-eol-p)
              (read-line s nil :eof)
-           (values line missing-newline-p))
+           (values line missing-eol-p))
          (pop line-stack))))
 
 (defmethod stream-file-position ((stream character-line-input-stream)
@@ -173,7 +172,7 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
         (t
          (let ((buffered-chars (loop
                                   for line in line-stack
-                                  sum (1+ (length line))))) ; 1+ for newline
+                                  sum (1+ (length line))))) ; eol
            (- (file-position s) buffered-chars))))))
 
 (defmethod more-lines-p ((stream character-line-input-stream))
@@ -219,16 +218,16 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
   (with-slots (line-stack)
       stream
     (if (null line-stack)
-        (multiple-value-bind (chunks has-newline-p)
-            (read-chunks stream)
+        (multiple-value-bind (chunks has-eol-p)
+            (read-octet-line stream)
           (cond ((null chunks)
                  (values :eof t))
                 ((zerop (length (first chunks)))
                  (first chunks))
                 ((= 1 (length chunks))
-                 (values (first chunks) has-newline-p))
+                 (values (first chunks) has-eol-p))
                 (t
-                 (values (concatenate-chunks chunks) has-newline-p))))
+                 (values (concatenate-chunks chunks) has-eol-p))))
         (pop line-stack))))
 
 (defmethod stream-file-position ((stream binary-line-input-stream)
@@ -248,74 +247,67 @@ of STREAM must be either a subclass of  CHARACTER or (UNSIGNED-BYTE 8)."
       stream
     (when (zerop num-bytes)
       (setf offset 0
-            num-bytes (read-sequence buffer s))
-      (or line-stack
-          (not (zerop num-bytes))))))
+            num-bytes (read-sequence buffer s)))
+    (or line-stack (not (zerop num-bytes)))))
 
 (defmethod push-line ((stream binary-line-input-stream) (line vector))
   (with-slots (line-stack)
       stream
     (push line line-stack)))
 
-(defun read-chunks (stream)
+(defun read-octet-line (stream)
   "Reads chunks of bytes up to the next newline or end of stream,
 returning them in a list. The newline is not included. Returns two
 values - a list of chunks and either NIL or T to indicate whether a
 terminating newline was missing. When the stream underlying the buffer
 is exhausted the list of chunks will be empty."
   (declare (optimize (speed 3) (safety 0)))
-  (with-slots ((s stream) buffer offset num-bytes nl-code)
+  (with-slots ((s stream) buffer offset num-bytes eol-code)
       stream
     (declare (type byte-buffer buffer)
              (type byte-buffer-index offset num-bytes))
     (labels ((fill-buffer ()
                (setf offset 0
                      num-bytes (read-sequence buffer s)))
-             (more-chunks ()
-               (let ((nl-position (position nl-code buffer
-                                            :start offset :end num-bytes)))
-                 (cond ((and nl-position(plusp (- nl-position offset)))
+             (find-eol ()
+               (let ((eol-pos (position eol-code buffer
+                                        :start offset :end num-bytes)))
+                 (cond ((and eol-pos (plusp (- eol-pos offset)))
                         ;; There is a newline in the buffer, but not
-                        ;; at the zeroth position. Make a chunk, copy
-                        ;; up to the newline into it, move the offset
-                        ;; beyond the newline.
-                        (let ((chunk (make-array (- nl-position offset)
+                        ;; at the zeroth position. Make a chunk up to
+                        ;; the newline
+                        (let ((chunk (make-array (- eol-pos offset)
                                                  :element-type 'octet
                                                  :initial-element 0)))
-                          (replace chunk buffer :start2 offset
-                                   :end2 nl-position)
-                          (setf offset (1+ nl-position))
+                          (replace chunk buffer :start2 offset :end2 eol-pos)
+                          (setf offset (1+ eol-pos))
                           (values (list chunk) nil)))
-                       ((and nl-position (zerop (- nl-position offset)))
+                       ((and eol-pos (zerop (- eol-pos offset)))
                         ;; There is a newline in the buffer at the
                         ;; zeroth position. Make an empty chunk (for
-                        ;; sake of consistency), move the offset
-                        ;; beyond the newline.
+                        ;; sake of consistency)
                         (let ((chunk (make-array 0 :element-type 'octet)))
-                          (setf offset (1+ nl-position))
+                          (setf offset (1+ eol-pos))
                           (values (list chunk) nil)))
                        ((zerop num-bytes)
                         ;; The buffer is empty
                         (values nil t))
                        (t
                         ;; There is no newline in the buffer. Make a
-                        ;; chunk to contain the rest of the buffered
-                        ;; bytes and copy into it, fill the buffer,
-                        ;; recursively call to search for the next
-                        ;; newline.
+                        ;; chunk and recurse to find the newline
                         (let ((chunk (make-array (- num-bytes offset)
                                                  :element-type 'octet
                                                  :initial-element 0))
                               (chunks nil)
-                              (missing-nl-p t))
+                              (missing-eol-p t))
                           (replace chunk buffer :start2 offset :end2 num-bytes)
                           (fill-buffer)
-                          (multiple-value-setq (chunks missing-nl-p)
-                            (more-chunks))
-                          (values (cons chunk chunks) missing-nl-p)))))))
+                          (multiple-value-setq (chunks missing-eol-p)
+                            (find-eol))
+                          (values (cons chunk chunks) missing-eol-p)))))))
       (when (buffer-empty-p offset num-bytes)
         (fill-buffer))
-      (more-chunks))))
+      (find-eol))))
 
 (defun buffer-empty-p (offset num-bytes)
   "Returns T if the internal byte buffer of BINARY-LINE-INPUT-STREAM
@@ -360,19 +352,21 @@ is empty."
 (defun concatenate-chunks (chunks)
   "Concatenates the list of byte arrays CHUNKS by copying their
 contents into a new fixed length array, which is returned."
-  (let ((line (make-array (reduce #'+ chunks :key #'length)
-                          :element-type 'octet :initial-element 0)))
+  (declare (optimize (speed 3)))
+  (let ((total-length (reduce #'+ chunks :key #'length)))
+    (declare (type vector-index total-length))
     (loop
+       with line = (make-array total-length :element-type 'octet
+                               :initial-element 0)
        for chunk of-type simple-octet-vector in chunks
        for chunk-length = (length chunk)
        with offset = 0
        do (unless (zerop chunk-length)
             (replace line chunk :start1 offset)
-            (incf offset chunk-length)))
-    line))
+            (incf offset chunk-length))
+       finally (return line))))
 
-(defmacro with-li-stream ((stream filespec &rest options)
-                          &body body)
+(defmacro with-li-stream ((stream filespec &rest options) &body body)
   "Uses WITH-OPEN-FILE to create a file stream to a file named by
 FILESPEC. The file stream is wrapped in a {defclass line-input-stream}
 and returned."
@@ -381,13 +375,11 @@ and returned."
       (let ((,stream (make-line-input-stream ,fs)))
         ,@body))))
 
-(defmacro with-ascii-li-stream ((stream filespec)
-                                &body body)
+(defmacro with-ascii-li-stream ((stream filespec) &body body)
    "Uses WITH-LI-STREAM to create a file stream with element-type
 BASE-CHAR and external format ASCII to a file named by FILESPEC. The
 file stream is wrapped in a {defclass line-input-stream} and
 returned."
   `(with-li-stream (,stream ,filespec :direction :input
-                    :element-type 'base-char
-                    :external-format :ascii)
+                            :element-type 'base-char :external-format :ascii)
     ,@body))
