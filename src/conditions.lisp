@@ -38,6 +38,18 @@
   ()
   (:documentation "The parent type of all CLI warning conditions."))
 
+(define-condition cli-option-error (cli-error)
+  ((name :initarg :name
+         :reader name-of
+         :documentation "The option name."))
+  (:documentation "The parent type of all CLI option error conditions."))
+
+(define-condition cli-option-warning (cli-warning)
+  ((name :initarg :name
+         :reader name-of
+         :documentation "The option name."))
+  (:documentation "The parent type of all CLI option warning conditions."))
+
 (define-condition unknown-command (cli-error)
   ((command :initarg :command
             :reader command-of
@@ -48,52 +60,45 @@
   (:documentation "An error that is raised when the main command is
 not recognised."))
 
-(define-condition missing-required-option (cli-error)
-  ((option :initarg :option
-           :reader option-of
-           :documentation "The missing option."))
+(define-condition missing-required-option (cli-option-error)
+  ()
   (:report (lambda (condition stream)
              (format stream "Missing required option --~a."
-                     (option-of condition))))
+                     (name-of condition))))
   (:documentation "An error that is raised when a required option is
 missing."))
 
-(define-condition incompatible-argument (cli-error)
-  ((option :initarg :option
-           :reader option-of
-           :documentation "The option for which the bad argument was
-supplied.")
-   (type :initarg :type
-         :reader type-of
-         :documentation "The expected type of option argument.")
-   (argument :initarg :argument
-             :reader argument-of
-             :documentation "The bad argument."))
+(define-condition missing-required-value (cli-option-error)
+  ()
   (:report (lambda (condition stream)
-             (format stream "Invalid argument ~a supplied for option --~a (~a)."
-                     (argument-of condition)
-                     (option-of condition) 
+             (format stream "Missing required value for --~a."
+                     (name-of condition))))
+  (:documentation "An error that is raised when a required value
+for an option is missing."))
+
+(define-condition incompatible-value (cli-option-error)
+  ((type :initarg :type
+         :reader type-of
+         :documentation "The expected type of option value.")
+   (value :initarg :value
+          :reader value-of
+          :documentation "The invalid value."))
+  (:report (lambda (condition stream)
+             (format stream "Invalid value ~s supplied for option --~a (~a)."
+                     (value-of condition) (name-of condition) 
                      (type-of condition))))
   (:documentation "An error that is raised when an option is supplied
-with an argument of the wrong type."))
+with an invalid value."))
 
-(define-condition unmatched-option (cli-warning)
-  ((option :initarg :option
-           :reader option-of
-           :documentation "The option for which the bad argument was
-supplied."))
+(define-condition unmatched-option (cli-option-warning)
+  ()
   (:report (lambda (condition stream)
-             (format stream "unmatched argument --~a"
-                     (option-of condition)))))
+             (format stream "unmatched option --~a" (name-of condition)))))
 
-(define-condition unknown-option (cli-warning)
-  ((option :initarg :option
-           :reader option-of
-           :documentation "The option for which the bad argument was
-supplied."))
+(define-condition unknown-option (cli-option-warning)
+  ()
   (:report (lambda (condition stream)
-             (format stream "unknown argument --~a"
-                     (option-of condition)))))
+             (format stream "unknown option --~a" (name-of condition)))))
 
 
 ;;; Parse conditions

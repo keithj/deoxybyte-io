@@ -132,21 +132,35 @@
      #:cli-warning
      #:unknown-command
      #:missing-required-option
-     #:incompatible-argument
+     #:missing-required-value
+     #:incompatible-value
      #:unmatched-option
      #:unknown-option
-     #:parse-command-line
-     #:print-cli-help
+
+     #:string-list
+     #:integer-list
+     #:character-list
+     #:float-list
+
+     #:define-cli
+     #:cli
      #:cli-option
-     #:print-option-help
-     #:cli-opt-key
-     #:cli-opt-name
-     #:cli-opt-required-p
-     #:cli-opt-documentation
-     #:cli-arg-required-p
-     #:cli-arg-type
-     #:cli-arg-parser
-     #:cli-arg-value
+
+     #:option-slot-p
+     #:option-slots-of
+     #:options-of
+     #:option-of
+     #:option-help
+     #:option-value
+     #:help-message
+     #:name-of
+     #:required-option-p
+     #:boolean-option-p
+     #:required-value-p
+     #:value-type-of
+     #:value-parser-of
+     #:parse-command-line
+
      #:print-backtrace
      #:quit-lisp
      #:with-cli

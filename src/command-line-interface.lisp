@@ -118,270 +118,291 @@ and {defmacro WITH-BACKTRACE} ."
 (defun quit-lisp ()
   (error "Not implemented on ~a" (lisp-implementation-type)))
 
-(defun parse-command-line (args options)
-  "Parses a system command line to create a mapping of option keywords
-to Lisp objects. Where multiple values are to be accepted for an
-argument e.g. :integer-list , they must be comma-separated on the
-command line e.g. 1,2,3,4.
+(defmacro define-cli (name direct-superclasses option-specs &rest options)
+  "Defines a new CLI class NAME.
 
-Example:
+Arguments: 
 
-;;; (parse-command-line (list \"--sample-name\" \"sample one\")
-;;;                     (list (cli-option
-;;;                            :sname
-;;;                            :name \"sample-name\"
-;;;                            :argument-type :string
-;;;                            :required-option t
-;;;                            :documentation
-;;;                             \"The sample name.\")))
+- name (symbol): The class name.
+- direct-superclasses (list symbols): The direct superclasses.
+- option-specs (list option-specs): The CLI option specifiers.
+
+Each option-spec specifies a slot and its corresponding CLI option
+instance.
+
+  Arguments:
+
+  - slot-name (symbol)
+  - option-name (string)
+
+  Rest:
+
+  - cl-option instance initargs 
+
+  Key:
+
+  - documentation (string): Slot (and hence cli-option) documentation.
+
+e.g.
+
+;;; (a \"a\" :required-option t :value-type 'string
+;;;      :documentation \"Required option A.\")
+
+Rest:
+
+- class-options as in defclass.
+
+e.g.
+
+;;; (define-cli example-cli (cli)
+;;;   ((a \"a\" :required-option t :value-type 'string
+;;;       :documentation \"Required option A.\")
+;;;    (b \"b\" :required-option t :value-type 'integer
+;;;       :documentation \"Required option D.\"))
+;;;   (:documentation \"An example CLI class definition.\"))"
+  `(defclass ,name ,direct-superclasses
+     ,(mapcar (lambda (option-spec)
+                (destructuring-bind (slot-name option-name
+                                               &rest args &key documentation
+                                               (class 'cli-option)
+                                               &allow-other-keys)
+                    option-spec
+                  (list slot-name
+                        :initform `(make-instance ',class :name ,option-name
+                                                  ,@(remove-key-values
+                                                     '(:documentation) args))
+                        :documentation documentation)))
+              option-specs)
+     ,@options))
+
+(defclass cli ()
+  ()
+  (:documentation "The base class of all command line
+interfaces. Command line options are added as slots, the slot
+documentation acting as the coomand line option documentation."))
+
+(defclass cli-option ()
+  ((name :initform (error "An option name is required")
+         :initarg :name
+         :reader name-of
+         :documentation "The name string of the option.")
+   (required-option :initform nil
+                    :initarg :required-option
+                    :reader required-option-p
+                    :documentation "T if option is required on the
+ command line, or NIL otherwise.")
+   (value-type :initform 'string
+               :initarg :value-type
+               :reader value-type-of
+               :documentation "The type of the value of the option. A
+type of T indicates a boolean option. Valid types are the symbols
+string, integer, character, float, string-list, integer-list,
+character-list, float-list and T (indicating boolean, i.e. no
+value).")
+   (value-parser :initform nil
+                 :reader value-parser-of
+                 :documentation "A value parser function for option
+that is capable of parsing a string to the correct type"))
+  (:documentation "The base class of all command line options."))
+
+(defmethod initialize-instance :after ((option cli-option) &key)
+  (with-slots (required-option value-type value-parser)
+      option
+    (check-arguments (not (and required-option (eql t value-type)))
+                     (required-option value-type)
+                     "a boolean type is incompatible with a required option")
+    (setf value-parser (ecase value-type
+                         (string nil)
+                         (character #'parse-character)
+                         (integer #'parse-integer)
+                         (float #'parse-float)
+                         (string-list #'parse-string-list)
+                         (character-list #'parse-character-list)
+                         (integer-list #'parse-integer-list)
+                         (float-list #'parse-float-list)
+                         (t nil))))) ; boolean
+
+(defgeneric parse-command-line (cli arglist)
+  (:documentation "Parses a system command line to create a mapping of
+option keywords to Lisp objects. Where multiple values are to be
+accepted for an argument e.g. 'integer-list , they must be
+comma-separated on the command line e.g. 1,2,3,4.
 
 Arguments:
 
-- args (list string): a list of system command line arguments.
-- options (list object): a list of command line options created by the
-{defun cli-option} function.
+- cli (object): A CLI instance.
+- arglist (list string): A list of CLI string arguments.
 
 Returns:
 
-- parsed arguments from which argument values may be read using the
-{defun cli-arg-value} function (alist).
-- remaining arguments (list string).
-- unknown arguments (list string)."
-  (multiple-value-bind (remaining-args matched-args unmatched-args)
-      (getopt:getopt args (getopt-options options))
-    (when unmatched-args
-      (warn-unmatched-args unmatched-args options))
-    (let ((parsed-args nil))
-      (dolist (opt options)
-        (let ((arg-value (assocdr (cli-opt-name opt)
-                                  matched-args :test #'string=)))
-          (cond ((and (cli-opt-required-p opt) ; missing opts
-                      (null arg-value))
-                 (error 'missing-required-option
-                        :option (cli-opt-name opt)))
-                ((and (cli-arg-required-p opt) ; opt parseable args
-                      (cli-arg-parser opt))
-                   (let ((parsed-arg (if (null arg-value)
-                                         arg-value
-                                       (parse-value-safely opt arg-value))))
-                     (setf parsed-args
-                           (acons (cli-opt-key opt)
-                                  parsed-arg
-                                  parsed-args))))
-                ((and (not (cli-opt-required-p opt)) ; boolean flags
-                      (not (cli-arg-required-p opt))
-                      (assoc (cli-opt-name opt)
-                             matched-args :test #'string=))
-                 (setf parsed-args
-                       (acons (cli-opt-key opt)
-                              '(t)
-                              parsed-args)))
-                (t ; plain strings
-                 (setf parsed-args
-                       (acons (cli-opt-key opt)
-                              arg-value
-                              parsed-args))))))
-      (values parsed-args remaining-args unmatched-args))))
+- alist mapping slots to parsed values
+- list of unmatched argument strings
+- list of unknown argument strings
 
-(defun print-cli-help (help-message options
-                       &optional (stream *error-output*))
-  "Prints a help message and help for each avaliable option.
+e.g
 
- Arguments:
+;;; (define-cli example-cli (cli)
+;;;   ((a \"a\" :required-option t :value-type 'string
+;;;       :documentation \"Required option A.\")
+;;;    (b \"b\" :required-option t :value-type 'integer
+;;;       :documentation \"Required option D.\"))
+;;;   (:documentation \"An example CLI class definition.\"))
 
- - help-message (string): a help message.
- - options (list object): a list of command line options created by the
- {defun cli-option} function from which the individual option
- documentation will be extracted for printing.
+;;; (parse-command-line (make-instance 'example-cli)
+;;;                     (list \"--a\" \"aaa\" \"--b\" \"1\")))")
+  (:method ((cli cli) arglist)
+    (flet ((parse-arg (option matched-args)
+             (with-accessors ((name name-of))
+                 option
+               (let ((value (assocdr name matched-args :test #'string=)))
+                 (cond ((boolean-option-p option)
+                        t)
+                       ((and (required-option-p option)
+                             (value-parser-of option))
+                        (and value (parse-safely option value)))
+                       (t                 ; plain strings
+                        value)))))
+           (getopt-style (option)
+             (list (name-of option) (cond ((required-value-p option)
+                                           :required)
+                                          ((eql t (value-type-of option))
+                                           :none)
+                                          (t
+                                           :optional)))))
+      (let* ((slots (option-slots-of cli))
+             (options (options-of cli)))
+        (multiple-value-bind (remaining-args matched-args unmatched-args)
+            (getopt:getopt arglist (mapcar #'getopt-style options))
+          (dolist (option options)
+            (with-accessors ((name name-of))
+                option
+              (when (find name unmatched-args :test #'string=)
+                (error 'missing-required-value :name name))
+              (unless (find name matched-args :key #'first :test #'string=)
+                (error 'missing-required-option :name name))))
+          (dolist (name unmatched-args)
+            (if (find name options :key #'name-of :test #'string=)
+                (warn 'unmatched-option :name name)
+                (warn 'unknown-option :name name)))
+          (values (pairlis slots (mapcar (lambda (option)
+                                           (parse-arg option matched-args))
+                                         options))
+                  remaining-args unmatched-args))))))
 
- Optional:
+(defgeneric option-slot-p (cli slot)
+  (:documentation "Returns T if SLOT is an option slot in CLI, or NIL
+otherwise.")
+  (:method ((cli cli) (slot symbol))
+    t))
 
- - stream (stream): the stream to which the message will be printed.
- Defaults to *ERROR-OUTOUT*.
+(defgeneric option-slots-of (cli)
+  (:documentation "Returns a new, sorted list of CLI option slots.")
+  (:method ((cli cli))
+    (remove-if (lambda (slot)
+                 (not (option-slot-p cli slot)))
+               (all-slot-names (class-of cli)))))
 
- Returns:
+(defgeneric options-of (cli)
+  (:documentation "Returns a new, sorted list of CLI options.")
+  (:method ((cli cli))
+    (mapcar (lambda (slot)
+              (slot-value cli slot)) (option-slots-of cli))))
 
- - T."
-  (format stream "~{~<~%~,70:;~a~> ~}~%"
-          (loop
-             for word in (dxu:string-split help-message #\Space)
-             collect word))
-  (terpri stream)
-  (write-line "  Options:" stream)
-  (dolist (opt options)
-    (print-option-help opt stream)
-    (terpri stream))
-  t)
+(defgeneric option-of (cli name)
+  (:documentation "Returns the CLI option identified by NAME.")
+  (:method ((cli cli) (name string))
+    (find name (options-of cli) :key #'name-of :test #'string=))
+  (:method ((cli cli) (name symbol))
+    (slot-value cli name)))
 
-(defun cli-option (key &key name required-option required-argument
-                   argument-type documentation)
-  "Returns an object defining a command line interface option.
+(defgeneric option-help (cli name &optional stream)
+  (:documentation "Prints the help string for option NAME to
+STREAM (which defaults to *ERROR-OUTPUT*).")
+  (:method ((cli cli) (name string) &optional stream)
+    (let* ((options (options-of cli))
+           (slot (nth (position name options :key #'name-of :test #'string=)
+                      (option-slots-of cli)))
+           (option (slot-value cli slot)))
+      (format stream
+              "  --~15a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
+              name (value-type-of option) (required-option-p option)
+              (slot-documentation slot (class-of cli)))))
+  (:method ((cli cli) (slot symbol) &optional stream)
+    (let ((option (slot-value cli slot)))
+      (format stream
+              "  --~15a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
+              (name-of option) (value-type-of option) (required-option-p option)
+              (slot-documentation slot (class-of cli))))))
 
-Example:
+(defgeneric help-message (cli message &optional stream)
+  (:documentation "Prints a help MESSAGE and help for each avaliable
+option in CLI to STREAM.")
+  (:method ((cli cli) message &optional stream)
+    (format stream "~{~<~%~,70:;~a~> ~}~%"
+            (loop
+               for word in (dxu:string-split message #\Space)
+               collect word))
+    (terpri stream)
+    (write-line "  Options:" stream)
+    (dolist (slot (option-slots-of cli))
+      (option-help cli slot stream)
+      (terpri stream))
+    t))
 
- ;;; (cli-option
- ;;;  :sname
- ;;;  :name \"sample-name\"
- ;;;  :argument-type :string
- ;;;  :required-option t
- ;;;  :documentation
- ;;;  \"The sample name.\")
+(defgeneric required-value-p (option)
+  (:documentation "Returns T if OPTION requires a value, or NIL
+otherwise.")
+  (:method ((option cli-option))
+    (not (boolean-option-p option))))
 
-Arguments:
+(defgeneric boolean-option-p (option)
+   (:documentation "Returns T if OPTION does not require a value, or
+NIL otherwise.")
+  (:method ((option cli-option))
+    (eql t (value-type-of option))))
 
-- key (symbol): a key symbol by which the option will be known.
-
-Key:
-
-- :name (string): the full name of the option to be used on the
-command line.
-
-- :required-option (boolean): indicates whether the option is required
-on the command line.
-- :required-argument (boolean): indicates whether the option, if used,
-requires an argument on the command line.
-- :argument-type (symbol): indicates the type of argument accepted for
-the option (:string :character :integer :float :string-list
-:character-list :integer-list :float-list NIL).
-- :documentation (string): a documentation string that may be printed
-as command line help for the option.
-
-Returns:
-
-- A cli-option (list)."
-  (check-arguments (not (and required-option (null argument-type)))
-                   (required-option argument-type)
-                   "this type is incompatible with a required argument")
-  (let ((argument-parser (ecase argument-type
-                           (:string nil)
-                           (:character #'parse-character)
-                           (:integer #'parse-integer)
-                           (:float #'parse-float)
-                           (:string-list #'parse-string-list)
-                           (:character-list #'parse-character-list)
-                           (:integer-list #'parse-integer-list)
-                           (:float-list #'parse-float-list)
-                           ((nil) nil)))) ; boolean
-    (list key name required-option required-argument argument-type
-          argument-parser documentation)))
-
-(defun cli-opt-p (name options)
-  (find name options :key #'cli-opt-name :test #'string=))
-
-(defun cli-opt-key (option)
-  "Returns the key symbol for OPTION."
-  (first option))
-
-(defun cli-opt-name (option)
-  "Returns the name of OPTION."
-  (second option))
-
-(defun cli-opt-required-p (option)
-  "Returns T if OPTION is required on the command line, or NIL
- otherwise."
-  (third option))
-
-(defun cli-arg-required-p (option)
-  "Returns T if OPTION is requires an argument on the command line, or
-NIL otherwise."
-  (fourth option))
-
-(defun cli-arg-type (option)
-  "Returns the type of the argument of OPTION."
-  (fifth option))
-
-(defun cli-arg-parser (option)
-  "Returns an argument parser function for OPTION that is capable of
-parsing an argument string to the correct type."
-  (sixth option))
-
-(defun cli-opt-documentation (option)
-  "Returns the command line documentation string for OPTION."
-  (seventh option))
-
-(defun cli-arg-value (option-key parsed-args)
-  "Returns the value from PARSED-ARGS for the option named by the
-symbol OPTION-KEY."
-  (check-arguments (cli-key-present-p option-key parsed-args)
-                   (option-key parsed-args)
+(defun option-value (key parsed-args)
+  "Returns the value from alist PARSED-ARGS for the option named by the
+symbol KEY."
+  (check-arguments (member key parsed-args :key #'first)
+                   (key parsed-args)
                    "there is no value for this key in the parsed arguments")
-  (assocdr option-key parsed-args))
+  (assocdr key parsed-args))
 
-(defun cli-key-present-p (option-key parsed-args)
-  "Returns T if a value for OPTION-KEY is present in PARSED-ARGS."
-  (member option-key parsed-args :key #'first))
-
-(defun print-option-help (option &optional (stream *error-output*))
-  "Prints the help string for OPTION to STREAM (which defaults to
-*ERROR-OUTPUT*)."
-  (format stream "  --~15a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
-          (cli-opt-name option)
-          (cli-arg-type option)
-          (cli-opt-required-p option)
-          (cli-opt-documentation option)))
-
-(defun getopt-options (options)
-  "Parses OPTIONS and returns a list of option definitions compatible
-with GETOPT:GETOPT ."
-  (flet ((getopt-keyword (opt)
-           (cond ((cli-arg-required-p opt)
-                  :required)
-                  ((null (cli-arg-type opt))
-                   :none)
-                  (t
-                   :optional))))
-    (mapcar (lambda (opt)
-              (list (cli-opt-name opt)
-                    (getopt-keyword opt))) options)))
-
-(defun warn-unmatched-args (unmatched-args options)
-  "Prints a warning message to *ERROR-OUTPUT* describing
-UNMATCHED-ARGS."
-  (dolist (arg unmatched-args)
-    (if (cli-opt-p arg options)
-        (warn 'unmatched-option :option arg)
-      (warn 'unknown-option :option arg))))
-
-(defun parse-value-safely (option value)
-  "Returns a parsed VALUE of the correct Lisp type for OPTION or
-raises an {define-condition incompatible-argument} error."
-  (handler-case
-      (funcall (cli-arg-parser option) value)
-    (parse-error (condition)
-      (declare (ignore condition))
-      (error 'incompatible-argument :option (cli-opt-name option)
-             :type (cli-arg-type option) :argument value))))
+(defgeneric parse-safely (option value)
+  (:documentation "Returns a parsed VALUE of the correct Lisp type for
+OPTION or raises an {define-condition incompatible-argument} error.")
+  (:method ((option cli-option) value)
+    (handler-case
+        (funcall (value-parser-of option) value)
+      (parse-error (condition)
+        (declare (ignore condition))
+        (error 'incompatible-value :name (name-of option)
+               :type (value-type-of option) :value value)))))
 
 (defun parse-character (string)
   "Returns a character parsed from STRING of length 1 character."
   (let ((trimmed (string-trim '(#\Space) string)))
     (if (= 1 (length trimmed))
         (char trimmed 0)
-      (error 'parse-error "expected a string of one character"))))
+        (error 'parse-error "expected a string of one character"))))
 
 (defun parse-string-list (string)
   "Returns a list of strings parsed from STRING by splitting on the
 *list-separator-char* character."
-  (string-split string *list-separator-char*
-                :remove-empty-substrings t))
+  (string-split string *list-separator-char* :remove-empty-substrings t))
 
 (defun parse-integer-list (string)
   "Returns a list of integers parsed from STRING after splitting on
 the *list-separator-char* character."
-  (mapcar #'parse-integer
-          (string-split string *list-separator-char*
-                        :remove-empty-substrings t)))
+  (mapcar #'parse-integer (parse-string-list string)))
 
 (defun parse-character-list (string)
   "Returns a list of integers parsed from STRING after splitting on
 the *list-separator-char* character."
-  (mapcar #'parse-character
-          (string-split string *list-separator-char*
-                        :remove-empty-substrings t)))
+  (mapcar #'parse-character (parse-string-list string)))
 
 (defun parse-float-list (string)
   "Returns a list of floats parsed from STRING after splitting on the
 *list-separator-char* character."
-  (mapcar #'parse-float
-          (string-split string *list-separator-char*
-                        :remove-empty-substrings t)))
+  (mapcar #'parse-float (parse-string-list string)))

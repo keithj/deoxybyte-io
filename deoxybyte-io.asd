@@ -25,13 +25,13 @@
 
 (defsystem deoxybyte-io
     :name "deoxybyte-io"
-    :version "0.6.2"
+    :version "0.7.0"
     :author "Keith James"
     :licence "GPL v3"
     :in-order-to ((test-op (load-op :deoxybyte-io :deoxybyte-io-test)))
     :depends-on (:deoxybyte-systems
                  (:version :cl-fad "0.6.2")
-                 (:version :deoxybyte-utilities "0.7.0")
+                 (:version :deoxybyte-utilities "0.7.1")
                  (:version :getopt "1.0"))
     :components
     ((:module :core

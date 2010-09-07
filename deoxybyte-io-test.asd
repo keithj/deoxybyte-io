@@ -26,4 +26,5 @@
                         :components ((:file "package")
                                      (:file "deoxybyte-io-test")
                                      (:file "pathnames-test")
-                                     (:file "binary-operations-test")))))
+                                     (:file "binary-operations-test")
+                                     (:file "command-line-interface-test")))))
