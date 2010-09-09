@@ -416,6 +416,16 @@ by CHAR."
 (defun wrap-string (str &optional stream)
   "Format STR, wrapped at 70 characters, to STREAM."
   (format stream "~{~<~%~,70:;~a~> ~}"
-          (dxu:string-split (subst-chars str #\Space
-                                         #\Newline #\Return #\Linefeed)
+          (dxu:string-split (normalise-whitespace
+                             (subst-chars str #\Space
+                                          #\Newline #\Return #\Linefeed))
                             #\Space)))
+
+(defun normalise-whitespace (str)
+  (with-input-from-string (in str)
+    (with-output-to-string (out)
+      (do ((char (read-char in nil nil) (read-char in nil nil)))
+          ((null char))
+        (write-char char out)
+        (when (whitespace-char-p char)
+          (peek-char t in nil nil))))))
