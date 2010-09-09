@@ -327,24 +327,21 @@ STREAM (which defaults to *ERROR-OUTPUT*).")
                       (option-slots-of cli)))
            (option (slot-value cli slot)))
       (format stream
-              "  --~15a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
+              "  --~20a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
               name (value-type-of option) (required-option-p option)
-              (slot-documentation slot (class-of cli)))))
+              (wrap-string (slot-documentation slot (class-of cli))))))
   (:method ((cli cli) (slot symbol) &optional stream)
     (let ((option (slot-value cli slot)))
       (format stream
-              "  --~15a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
+              "  --~20a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
               (name-of option) (value-type-of option) (required-option-p option)
-              (slot-documentation slot (class-of cli))))))
+              (wrap-string (slot-documentation slot (class-of cli)))))))
 
 (defgeneric help-message (cli message &optional stream)
   (:documentation "Prints a help MESSAGE and help for each avaliable
 option in CLI to STREAM.")
   (:method ((cli cli) message &optional stream)
-    (format stream "~{~<~%~,70:;~a~> ~}~%"
-            (loop
-               for word in (dxu:string-split message #\Space)
-               collect word))
+    (write-line (wrap-string message) stream)
     (terpri stream)
     (write-line "  Options:" stream)
     (dolist (slot (option-slots-of cli))
@@ -409,3 +406,16 @@ the *list-separator-char* character."
   "Returns a list of floats parsed from STRING after splitting on the
 *list-separator-char* character."
   (mapcar #'parse-float (parse-string-list string)))
+
+(defun subst-chars (str char &rest chars)
+  "Returns a copy of STR where any occurrence of CHARS are substituted
+by CHAR."
+  (substitute-if char (lambda (char)
+                        (member char chars :test #'char=)) str))
+
+(defun wrap-string (str &optional stream)
+  "Format STR, wrapped at 70 characters, to STREAM."
+  (format stream "~{~<~%~,70:;~a~> ~}"
+          (dxu:string-split (subst-chars str #\Space
+                                         #\Newline #\Return #\Linefeed)
+                            #\Space)))
