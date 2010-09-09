@@ -42,6 +42,9 @@
 (define-cli test-optional-cli (cli)
   ((a "a" :required-option nil :value-type 'string)))
 
+(define-cli test-boolean-cli (cli)
+  ((a "a" :required-option nil :value-type t)))
+
 (addtest (deoxybyte-io-tests) option-slot-p/1
   (let ((cli (make-instance 'test-cli)))
     (ensure (every (lambda (slot)
@@ -114,6 +117,11 @@
                                     "--b" "1"
                                     "--c" "c"
                                     "--d" "0.1")))))
+
+(addtest (deoxybyte-io-tests) parse-command-line/4
+  (let ((cli (make-instance 'test-boolean-cli)))
+    (ensure (equal '((A . T)) (parse-command-line cli (list "--a"))))
+    (ensure (equal '((A)) (parse-command-line cli nil)))))
 
 (addtest (deoxybyte-io-tests) option-value/1
   (let ((parsed (parse-command-line (make-instance 'test-cli)

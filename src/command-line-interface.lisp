@@ -256,7 +256,8 @@ e.g
                  option
                (let ((value (assocdr name matched-args :test #'string=)))
                  (cond ((boolean-option-p option)
-                        t)
+                        (when (find name matched-args :key #'first)
+                          t))
                        ((and (required-option-p option)
                              (value-parser-of option))
                         (and value (parse-safely option value)))
@@ -278,7 +279,9 @@ e.g
                 option
               (when (find name unmatched-args :test #'string=)
                 (error 'missing-required-value :name name))
-              (unless (find name matched-args :key #'first :test #'string=)
+              (when (and (required-option-p option)
+                         (not (find name matched-args :key #'first
+                                    :test #'string=)))
                 (error 'missing-required-option :name name))))
           (dolist (name unmatched-args)
             (if (find name options :key #'name-of :test #'string=)
@@ -300,7 +303,7 @@ otherwise.")
   (:method ((cli cli))
     (remove-if (lambda (slot)
                  (not (option-slot-p cli slot)))
-               (all-slot-names (class-of cli)))))
+               (all-slots (class-of cli)))))
 
 (defgeneric options-of (cli)
   (:documentation "Returns a new, sorted list of CLI options.")
