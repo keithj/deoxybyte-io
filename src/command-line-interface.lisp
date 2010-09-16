@@ -222,6 +222,17 @@ that is capable of parsing a string to the correct type"))
                          (float-list #'parse-float-list)
                          (t nil))))) ; boolean
 
+(defmethod print-object ((cli cli) stream)
+  (print-unreadable-object (cli stream :type t)
+    (princ (options-of cli) stream)))
+
+(defmethod print-object ((option cli-option) stream)
+  (print-unreadable-object (option stream :type t)
+    (with-slots (name required-option value-type)
+        option
+      (format stream "~a, ~:[required~;not required~], type: ~a"
+              name required-option value-type))))
+
 (defgeneric parse-command-line (cli arglist)
   (:documentation "Parses a system command line to create a mapping of
 option keywords to Lisp objects. Where multiple values are to be
@@ -258,9 +269,8 @@ e.g
                  (cond ((boolean-option-p option)
                         (when (find name matched-args :key #'first)
                           t))
-                       ((and (required-option-p option)
-                             (value-parser-of option))
-                        (and value (parse-safely option value)))
+                       ((and (value-parser-of option) value)
+                        (parse-safely option value))
                        (t                 ; plain strings
                         value)))))
            (getopt-style (option)
