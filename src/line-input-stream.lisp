@@ -255,59 +255,7 @@ of STREAM must be either a subtype of CHARACTER or (UNSIGNED-BYTE 8)."
       stream
     (push line line-stack)))
 
-(defun read-octet-line (stream)
-  "Reads chunks of bytes up to the next newline or end of stream,
-returning them in a list. The newline is not included. Returns two
-values - a list of chunks and either NIL or T to indicate whether a
-terminating newline was missing. When the stream underlying the buffer
-is exhausted the list of chunks will be empty."
-  (declare (optimize (speed 3) (safety 0)))
-  (with-slots ((s stream) buffer offset num-bytes eol-code)
-      stream
-    (declare (type byte-buffer buffer)
-             (type byte-buffer-index offset num-bytes))
-    (labels ((fill-buffer ()
-               (setf offset 0
-                     num-bytes (read-sequence buffer s)))
-             (find-eol ()
-               (let ((eol-pos (position eol-code buffer
-                                        :start offset :end num-bytes)))
-                 (cond ((and eol-pos (plusp (- eol-pos offset)))
-                        ;; There is a newline in the buffer, but not
-                        ;; at the zeroth position. Make a chunk up to
-                        ;; the newline
-                        (let ((chunk (make-array (- eol-pos offset)
-                                                 :element-type 'octet
-                                                 :initial-element 0)))
-                          (replace chunk buffer :start2 offset :end2 eol-pos)
-                          (setf offset (1+ eol-pos))
-                          (values (list chunk) nil)))
-                       ((and eol-pos (zerop (- eol-pos offset)))
-                        ;; There is a newline in the buffer at the
-                        ;; zeroth position. Make an empty chunk (for
-                        ;; sake of consistency)
-                        (let ((chunk (make-array 0 :element-type 'octet)))
-                          (setf offset (1+ eol-pos))
-                          (values (list chunk) nil)))
-                       ((zerop num-bytes)
-                        ;; The buffer is empty
-                        (values nil t))
-                       (t
-                        ;; There is no newline in the buffer. Make a
-                        ;; chunk and recurse to find the newline
-                        (let ((chunk (make-array (- num-bytes offset)
-                                                 :element-type 'octet
-                                                 :initial-element 0))
-                              (chunks nil)
-                              (missing-eol-p t))
-                          (replace chunk buffer :start2 offset :end2 num-bytes)
-                          (fill-buffer)
-                          (multiple-value-setq (chunks missing-eol-p)
-                            (find-eol))
-                          (values (cons chunk chunks) missing-eol-p)))))))
-      (when (buffer-empty-p offset num-bytes)
-        (fill-buffer))
-      (find-eol))))
+
 
 (defun buffer-empty-p (offset num-bytes)
   "Returns T if the internal byte buffer of BINARY-LINE-INPUT-STREAM
