@@ -179,15 +179,15 @@
      #:test-of
      #:io-stream-mixin
 
+     #:make-line-stream
+     #:line-stream
      #:line-input-stream
+     #:line-output-stream
      #:character-line-input-stream
-     #:binary-line-input-stream
+     #:octet-line-input-stream
      #:push-line
      #:more-lines-p
      #:find-line
-     #:make-line-input-stream
-     #:with-li-stream
-     #:with-ascii-li-stream
 
      ;; Table parser
      #:*empty-field*

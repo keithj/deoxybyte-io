@@ -19,7 +19,6 @@
 
 (in-package :uk.co.deoxybyte-io)
 
-;;; Gray-stream classes
 (defclass wrapped-stream-mixin ()
   ((stream :initarg :stream
            :reader stream-of
@@ -46,22 +45,21 @@ test returns T are ignored and skipped."))
 
 ;;; Methods common to all Gray streams
 (defmethod stream-element-type ((stream wrapped-stream-mixin))
-  (stream-element-type (stream-of stream)))
+  (stream-element-type (slot-value stream 'stream)))
 
 (defmethod close ((stream wrapped-stream-mixin) &key abort)
-  (close (stream-of stream) :abort abort))
+  (close (slot-value stream 'stream) :abort abort))
 
 (defmethod open-stream-p ((stream wrapped-stream-mixin))
-  (open-stream-p (stream-of stream)))
+  (open-stream-p (slot-value stream 'stream)))
 
 (defmethod stream-file-position ((stream wrapped-stream-mixin)
                                  &optional position)
-  (file-position (stream-of stream) position))
+  (file-position (slot-value stream 'stream) position))
 
 ;;; Deoxybyte Gray streams methods
 (defmethod stream-delete-file ((stream wrapped-stream-mixin))
-  (delete-file (stream-of stream)))
-
+  (delete-file (slot-value stream 'stream)))
 
 ;;; Methods common to Gray input streams
 (defmethod stream-clear-input ((stream io-stream-mixin))
@@ -76,3 +74,8 @@ test returns T are ignored and skipped."))
 
 (defmethod stream-force-output ((stream io-stream-mixin))
   nil)
+
+;;; Initialization
+(defmethod initialize-instance :after ((stream wrapped-stream-mixin) &key)
+  (check-arguments (streamp (slot-value stream 'stream)) (stream)
+                   "expected a stream argument"))

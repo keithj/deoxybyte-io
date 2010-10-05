@@ -25,16 +25,6 @@
 (defun test-data-file (filespec)
   (asdf:system-relative-pathname 'deoxybyte-io filespec))
 
-(defun as-bytes (str)
-  (make-array (length str) :element-type 'octet
-              :initial-contents (loop for c across str
-                                     collect (char-code c))))
-
-(defun as-chars (bytes)
-  (make-array (length bytes) :element-type 'base-char
-              :initial-contents (loop for b across bytes
-                                     collect (code-char b))))
-
 ;;; Gray-streams methods to be tested
 
 ;; input streams
@@ -54,218 +44,132 @@
 ;; sb-gray:stream-unread-char stream character
 
 (addtest (deoxybyte-io-tests) gray-common/1
-  (with-open-file (stream (test-data-file "data/test1.txt")
-                   :direction :input
-                   :element-type 'base-char
-                   :external-format :ascii)
-    (let ((s (make-line-input-stream stream)))
-      (ensure (subtypep (stream-element-type s) 'character))
-      (ensure (zerop (stream-file-position s)))
-      (ensure (open-stream-p s))
-      (ensure (close s))
-      (ensure (not (open-stream-p s)))
-      (ensure-error
-       (stream-read-line s)))))
-
-(addtest (deoxybyte-io-tests) gray-common/2
-  (with-open-file (stream (test-data-file "data/test1.txt")
-                   :direction :input
-                   :element-type 'octet)
-    (let ((s (make-line-input-stream stream)))
-      (ensure (subtypep (stream-element-type s) 'octet))
-      (ensure (zerop (stream-file-position s)))
-      (ensure (open-stream-p s))
-      (ensure (close s))
-      (ensure (not (open-stream-p s)))
-      (ensure-error
-       (stream-read-line s)))))
+  (dolist (elt-type '(base-char octet))
+    (with-open-file (stream (test-data-file "data/test1.txt")
+                            :direction :input :element-type elt-type)
+      (let ((s (make-line-stream stream)))
+        (ensure (subtypep (stream-element-type s) 'string))
+        (ensure (zerop (stream-file-position s)))
+        (ensure (open-stream-p s))
+        (ensure (close s))
+        (ensure (not (open-stream-p s)))
+        (ensure-error
+          (stream-read-line s))))))
 
 (addtest (deoxybyte-io-tests) gray-input/1
-  (with-open-file (stream (test-data-file "data/test1.txt")
-                   :direction :input
-                   :element-type 'base-char
-                   :external-format :ascii)
-    (let ((s (make-line-input-stream stream))
-          (b (make-array 10 :element-type 'character)))
-      ;; stream-clear-input should empty the line buffer
-      (push-line s "aaaa")
-      (ensure (slot-value s 'deoxybyte-io::line-stack))
-      (ensure-null (stream-clear-input s))
-      (ensure (not (slot-value s 'deoxybyte-io::line-stack)))
-      (ensure (= 10 (stream-read-sequence s b 0 (length b))))
-      (ensure (string= "abcdefghij" b)))))
-
-(addtest (deoxybyte-io-tests) gray-input/2
-  (with-open-file (stream (test-data-file "data/test1.txt")
-                   :direction :input
-                   :element-type 'octet)
-    (let ((s (make-line-input-stream stream))
-          (b (make-array 10 :element-type 'octet)))
-      (ensure-null (stream-clear-input s))
-      (ensure (= 10 (stream-read-sequence s b 0 (length b))))
-      (ensure (equalp (as-bytes "abcdefghij") b)))))
-
-(addtest (deoxybyte-io-tests) gray-binary/1
-  (with-open-file (stream (test-data-file "data/test1.txt")
-                   :direction :input
-                   :element-type 'octet)
-    (let ((s (make-line-input-stream stream))
-          (line (as-bytes "abcdefghijklmnopqrstuvwxyz")))
-      (loop for byte across line
-           do (ensure (= byte (stream-read-byte s)))))))
-
-(addtest (deoxybyte-io-tests) gray-char/1
-  (with-open-file (stream (test-data-file "data/test1.txt")
-                   :direction :input
-                   :element-type 'base-char
-                   :external-format :ascii)
-    (let ((s (make-line-input-stream stream))
-          (line "abcdefghijklmnopqrstuvwxyz"))
-      (ensure (char= #\a (stream-read-char s)))
-      (ensure-null (stream-unread-char s #\a))
-      (loop for char across line
-         do (ensure (char= char (stream-read-char s)))))))
+  (dolist (elt-type '(base-char octet))
+    (with-open-file (stream (test-data-file "data/test3.txt")
+                            :direction :input :element-type elt-type)
+      (let ((s (make-line-stream stream))
+            (b (make-array 9 :element-type t)))
+        ;; stream-clear-input should empty the line buffer
+        (push-line s "aaaa")
+        (ensure (slot-value s 'deoxybyte-io::line-stack))
+        (ensure-null (stream-clear-input s))
+        (ensure (not (slot-value s 'deoxybyte-io::line-stack)))
+        (ensure (= 1 (stream-read-sequence s b 0 1)))
+        (ensure (= 4 (stream-read-sequence s b 1 5)))
+        (ensure (= 4 (stream-read-sequence s b 5)))
+        (ensure (equalp #("abc"
+                          "def"
+                          "ghi"
+                          "jkl"
+                          "mno"
+                          "pqr"
+                          "stu"
+                          "vwx"
+                          "yz") b))))))
 
 (addtest (deoxybyte-io-tests) stream-read-line/1
-  (with-open-file (stream (test-data-file "data/test1.txt")
-                   :direction :input
-                   :element-type 'base-char
-                   :external-format :ascii)
-    (let ((s (make-line-input-stream stream))
-          (line "abcdefghijklmnopqrstuvwxyz"))
-      (multiple-value-bind (line2 missing-newline-p)
-          (stream-read-line s)
-        (ensure (equalp line2 line))
-        (ensure (not missing-newline-p)))
-      (multiple-value-bind (line2 missing-newline-p)
-          (stream-read-line s)
-        (ensure (eql :eof line2))
-        (ensure missing-newline-p)))))
-
-(addtest (deoxybyte-io-tests) stream-read-line/2
-  (with-open-file (stream (test-data-file "data/test1.txt")
-                   :direction :input
-                   :element-type 'octet)
-    (let ((s (make-line-input-stream stream))
-          (line (as-bytes "abcdefghijklmnopqrstuvwxyz")))
-      (multiple-value-bind (bytes missing-newline-p)
-          (stream-read-line s)
-        (ensure (equalp line bytes))
-        (ensure (not missing-newline-p)))
-      (multiple-value-bind (bytes missing-newline-p)
-          (stream-read-line s)
-        (ensure-same :eof bytes)
-        (ensure missing-newline-p)))))
-
-(addtest (deoxybyte-io-tests) push-line/1
-  (with-open-file (stream (test-data-file "data/test1.txt")
-                   :direction :input
-                   :element-type 'base-char
-                   :external-format :ascii)
-    (let ((s (make-line-input-stream stream))
-          (line "abcdefghijklmnopqrstuvwxyz"))
-      (multiple-value-bind (line2 missing-newline-p)
-          (stream-read-line s)
-        (ensure (equalp line line2))
-        (ensure (not missing-newline-p))
-        (push-line s line2)
-        (ensure (equalp line (stream-read-line s)))))))
-
-(addtest (deoxybyte-io-tests) push-line/2
-  (with-open-file (stream (test-data-file "data/test1.txt")
-                   :direction :input
-                   :element-type 'octet)
-    (let ((s (make-line-input-stream stream))
-          (line (as-bytes "abcdefghijklmnopqrstuvwxyz")))
-      (multiple-value-bind (bytes missing-newline-p)
-          (stream-read-line s)
-        (ensure (equalp line bytes))
-        (ensure (not missing-newline-p))
-        (push-line s bytes)
-        (ensure (equalp line (stream-read-line s)))))))
-
-(addtest (deoxybyte-io-tests) missing-newline-p/1
-  (with-open-file (stream (test-data-file "data/test2.txt")
-                   :direction :input
-                   :element-type 'base-char
-                   :external-format :ascii)
-    (let ((s (make-line-input-stream stream))
-          (lines '("1234567890"
-                   "0987654321"
-                   "abcdefghij"
-                   "klmnopqrst")))
-      (dolist (line (butlast lines))
+  (dolist (elt-type '(base-char octet))
+    (with-open-file (stream (test-data-file "data/test1.txt")
+                            :direction :input :element-type elt-type)
+      (let ((s (make-line-stream stream))
+            (line "abcdefghijklmnopqrstuvwxyz"))
         (multiple-value-bind (line2 missing-newline-p)
             (stream-read-line s)
-          (ensure (equalp line line2))
-          (ensure (not missing-newline-p))))
-      (multiple-value-bind (line2 missing-newline-p)
-          (stream-read-line s)
-        (ensure (equalp (car (last lines)) line2))
-        (ensure missing-newline-p)))))
-
-(addtest (deoxybyte-io-tests) missing-newline-p/2
-  (with-open-file (stream (test-data-file "data/test2.txt")
-                   :direction :input
-                   :element-type 'octet)
-    (let ((s (make-line-input-stream stream))
-          (lines (mapcar #'as-bytes '("1234567890"
-                                      "0987654321"
-                                      "abcdefghij"
-                                      "klmnopqrst"))))
-      (dolist (line (butlast lines))
-        (multiple-value-bind (bytes missing-newline-p)
+          (ensure (equal line line2))
+          (ensure (not missing-newline-p)))
+        (multiple-value-bind (line2 missing-newline-p)
             (stream-read-line s)
-          (ensure (equalp line bytes))
-          (ensure (not missing-newline-p))))
-      (multiple-value-bind (bytes missing-newline-p)
-          (stream-read-line s)
-        (ensure (equalp (car (last lines)) bytes))
-        (ensure missing-newline-p)))))
+          (ensure (eql :eof line2))
+          (ensure missing-newline-p))))))
+
+(addtest (deoxybyte-io-tests) push-line/1
+  (dolist (elt-type '(base-char octet))
+    (with-open-file (stream (test-data-file "data/test1.txt")
+                            :direction :input :element-type elt-type)
+      (let ((s (make-line-stream stream))
+            (line "abcdefghijklmnopqrstuvwxyz"))
+        (multiple-value-bind (line2 missing-newline-p)
+            (stream-read-line s)
+          (ensure (equal line line2))
+          (ensure (not missing-newline-p))
+          (push-line s line2)
+          (ensure (equal line (stream-read-line s))))))))
+
+(addtest (deoxybyte-io-tests) missing-newline-p/1
+  (dolist (elt-type '(base-char octet))
+    (with-open-file (stream (test-data-file "data/test2.txt")
+                            :direction :input :element-type elt-type)
+      (let ((s (make-line-stream stream))
+            (lines '("1234567890"
+                     "0987654321"
+                     "abcdefghij"
+                     "klmnopqrst")))
+        (dolist (line (butlast lines))
+          (multiple-value-bind (line2 missing-newline-p)
+              (stream-read-line s)
+            (ensure (equal line line2))
+            (ensure (not missing-newline-p))))
+        (multiple-value-bind (line2 missing-newline-p)
+            (stream-read-line s)
+          (ensure (equal (car (last lines)) line2))
+          (ensure missing-newline-p))))))
 
 (addtest (deoxybyte-io-tests) find-line/1
-  (with-open-file (stream (test-data-file "data/test3.txt")
-                   :direction :input
-                   :element-type 'octet)
-    (let ((s (make-line-input-stream stream))
-          (lines (mapcar #'as-bytes '("abc"
-                                      "def"
-                                      "ghi"
-                                      "jkl"
-                                      "mno"
-                                      "pqr"
-                                      "stu"
-                                      "vwx"
-                                      "yz"))))
-      ;; Success at line 1 of max 1 -> "abc"
-      (multiple-value-bind (line found line-count)
-          (find-line s (lambda (a)
-                         (= (aref a 0) (char-code #\a))) 1)
-        (ensure (equalp (nth 0 lines) line))
-        (ensure found)
-        (ensure (= 1 line-count)))
-      ;; Fail at line 1 of max 1 -> "def"
-      (multiple-value-bind (line found line-count)
-          (find-line s (lambda (a)
-                         (= (aref a 0) (char-code #\Z))) 1)
-        (ensure (equalp (nth 1 lines) line))
-        (ensure (not found))
-        (ensure (= 1 line-count)))
-      ;; Success at line 3 of max 4
-      (multiple-value-bind (line found line-count)
-          (find-line s (lambda (a)
-                         (= (aref a 0) (char-code #\m))) 4)
-        (ensure (equalp (nth 4 lines) line))
-        (ensure found)
-        (ensure (= 3 line-count)))
-      ;; Fall through to eof
-      (multiple-value-bind (line found line-count)
-          (find-line s (lambda (a)
-                         (declare (ignore a))
-                         nil))
-        (ensure-same :eof line)
-        (ensure (not found))
-        (ensure (= 5 line-count))))))
+  (dolist (elt-type '(base-char octet))
+    (with-open-file (stream (test-data-file "data/test3.txt")
+                            :direction :input :element-type elt-type)
+      (let ((s (make-line-stream stream))
+            (lines '("abc"
+                     "def"
+                     "ghi"
+                     "jkl"
+                     "mno"
+                     "pqr"
+                     "stu"
+                     "vwx"
+                     "yz")))
+        ;; Success at line 1 of max 1 -> "abc"
+        (multiple-value-bind (line found line-count)
+            (find-line s (lambda (a)
+                           (char= (aref a 0) #\a)) 1)
+          (ensure (equal (nth 0 lines) line))
+          (ensure found)
+          (ensure (= 1 line-count)))
+        ;; Fail at line 1 of max 1 -> "def"
+        (multiple-value-bind (line found line-count)
+            (find-line s (lambda (a)
+                           (char= (aref a 0) #\Z)) 1)
+          (ensure (equal (nth 1 lines) line))
+          (ensure (not found))
+          (ensure (= 1 line-count)))
+        ;; Success at line 3 of max 4
+        (multiple-value-bind (line found line-count)
+            (find-line s (lambda (a)
+                           (char= (aref a 0) #\m)) 4)
+          (ensure (equal (nth 4 lines) line))
+          (ensure found)
+          (ensure (= 3 line-count)))
+        ;; Fall through to eof
+        (multiple-value-bind (line found line-count)
+            (find-line s (lambda (a)
+                           (declare (ignore a))
+                           nil))
+          (ensure-same :eof line)
+          (ensure (not found))
+          (ensure (= 5 line-count)))))))
 
 (addtest (deoxybyte-io-tests) make-tmp-directory/1
   ;; Test defaults

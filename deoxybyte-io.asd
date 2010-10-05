@@ -25,7 +25,7 @@
 
 (defsystem deoxybyte-io
     :name "deoxybyte-io"
-    :version "0.7.3"
+    :version "0.8.0"
     :author "Keith James"
     :licence "GPL v3"
     :in-order-to ((test-op (load-op :deoxybyte-io :deoxybyte-io-test)))
@@ -45,7 +45,7 @@
                            (:file "ieee-float")
                            (:file "binary-operations")
                            (:file "streams")
-                           (:file "line-input-stream")
+                           (:file "line-stream")
                            (:file "command-line-interface")
                            (:file "files-and-directories")
                            (:file "simple-table-parser")
