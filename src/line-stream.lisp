@@ -219,8 +219,8 @@ unread data."))
                 for chunk of-type simple-octet-vector in chunks
                 for clength = (length chunk)
                 do (unless (zerop clength)
-                     (copy-array chunk 0 clength
-                                 line offset #'code-char)
+                     (copy-vector chunk 0 clength
+                                  line offset #'code-char)
                      (incf offset clength))
                 finally (return line)))))
     (with-slots (line-stack)
@@ -255,8 +255,8 @@ unread data."))
                               &optional (start 0) end)
   (let ((end (or end (length str)))
         (octets (make-array (- end start) :element-type 'octet)))
-    (copy-array str 0 end
-                octets 0 #'char-code)
+    (copy-vector str 0 end
+                 octets 0 #'char-code)
     (write-sequence octets (slot-value stream 'stream))))
 
 (defun read-octet-line (stream)

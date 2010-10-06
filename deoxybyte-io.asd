@@ -31,7 +31,7 @@
     :in-order-to ((test-op (load-op :deoxybyte-io :deoxybyte-io-test)))
     :depends-on (:deoxybyte-systems
                  (:version :cl-fad "0.6.2")
-                 (:version :deoxybyte-utilities "0.7.2")
+                 (:version :deoxybyte-utilities "0.9.0")
                  (:version :getopt "1.0"))
     :components
     ((:module :core
