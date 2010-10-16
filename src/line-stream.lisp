@@ -245,19 +245,17 @@ unread data."))
                                   sequence start end)
   (%stream-write-sequence stream sequence start end))
 
-;;; character-line-output-stream methods
-(defmethod stream-write-line ((str string) (stream character-line-output-stream)
-                              &optional (start 0) end)
-  (write-line str (slot-value stream 'stream) :start start :end end))
-
-;;; octet-line-output-stream methods
-(defmethod stream-write-line ((str string) (stream octet-line-output-stream)
-                              &optional (start 0) end)
-  (let ((end (or end (length str)))
-        (octets (make-array (- end start) :element-type 'octet)))
-    (copy-vector str 0 end
-                 octets 0 #'char-code)
-    (write-sequence octets (slot-value stream 'stream))))
+(defgeneric stream-write-line (string stream &optional start end)
+  (:method ((str string) (stream character-line-output-stream)
+            &optional (start 0) end)
+    (write-line str (slot-value stream 'stream) :start start :end end))
+  (:method ((str string) (stream octet-line-output-stream)
+            &optional (start 0) end)
+    (let ((end (or end (length str)))
+          (octets (make-array (- end start) :element-type 'octet)))
+      (copy-vector str 0 end
+                   octets 0 #'char-code)
+      (write-sequence octets (slot-value stream 'stream)))))
 
 (defun read-octet-line (stream)
   "Reads chunks of bytes up to the next newline or end of stream,
