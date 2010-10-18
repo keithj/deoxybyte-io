@@ -40,15 +40,19 @@ test returns T are ignored and skipped."))
   ())
 
 ;;; Deoxybyte Gray streams generic functions
+(defgeneric stream-open (filespec class &rest initargs)
+  (:documentation "Returns a Gray stream of CLASS"))
+
+(defgeneric stream-close (stream &key abort)
+  (:documentation "Closes STREAM, returning T if STREAM was open. If
+ABORT is T, attempts to clean up any side effects of having created stream."))
+
 (defgeneric stream-delete-file (stream)
   (:documentation "Equivalent to CL:DELETE-FILE."))
 
 ;;; Methods common to all Gray streams
 (defmethod stream-element-type ((stream wrapped-stream-mixin))
   (stream-element-type (slot-value stream 'stream)))
-
-(defmethod close ((stream wrapped-stream-mixin) &key abort)
-  (close (slot-value stream 'stream) :abort abort))
 
 (defmethod open-stream-p ((stream wrapped-stream-mixin))
   (open-stream-p (slot-value stream 'stream)))
@@ -58,6 +62,12 @@ test returns T are ignored and skipped."))
   (file-position (slot-value stream 'stream) position))
 
 ;;; Deoxybyte Gray streams methods
+(defmethod stream-open (filespec class &rest initargs)
+  (make-instance class :stream (apply #'open filespec initargs)))
+
+(defmethod stream-close ((stream wrapped-stream-mixin) &key abort)
+  (close (slot-value stream 'stream) :abort abort))
+
 (defmethod stream-delete-file ((stream wrapped-stream-mixin))
   (delete-file (slot-value stream 'stream)))
 

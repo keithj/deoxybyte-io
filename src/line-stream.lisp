@@ -211,7 +211,9 @@ unread data."))
 (defmethod stream-read-line ((stream octet-line-input-stream))
   (declare (optimize (speed 3)))
   (flet ((build-string (chunks) ; this is 3x faster than with-output-to-string
-           (let ((length (reduce #'+ chunks :key #'length)))
+           (let ((length (if (endp (rest chunks))
+                             (length (the simple-octet-vector (first chunks)))
+                             (reduce #'+ chunks :key #'length))))
              (declare (type vector-index length))
              (loop
                 with line = (make-array length :element-type 'base-char)

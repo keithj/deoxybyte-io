@@ -39,7 +39,7 @@
       #:output-stream-p
       #:open-stream-p
       #:stream-element-type
-      #:close
+      ;; #:close
 
       ;; Input stream generic functions
       #:stream-clear-input
@@ -169,6 +169,8 @@
 
      ,@(gray-streams-symbols)
 
+     #:stream-open
+     #:stream-close
      #:stream-file-position
      #:stream-read-sequence
      #:stream-write-sequence

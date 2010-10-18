@@ -51,7 +51,7 @@
         (ensure (subtypep (stream-element-type s) 'string))
         (ensure (zerop (stream-file-position s)))
         (ensure (open-stream-p s))
-        (ensure (close s))
+        (ensure (stream-close s))
         (ensure (not (open-stream-p s)))
         (ensure-error
           (stream-read-line s))))))
