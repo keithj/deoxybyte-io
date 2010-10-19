@@ -19,7 +19,7 @@
 
 (in-package :uk.co.deoxybyte-io)
 
-(defconstant +octet-buffer-size+ (expt 2 13)
+(defconstant +octet-buffer-size+ (1- (expt 2 13))
   "Buffer size for {defclass octet-line-input-stream} internal
 buffer.")
 
@@ -40,6 +40,7 @@ and writers for ad-hoc text data sources."))
 
 (defclass line-input-stream (line-stream fundamental-input-stream)
   ((line-stack :initform nil
+               :accessor line-stack-of
                :documentation "A list of lines that have been pushed
 back into the stream to be read again."))
   (:documentation "A line-based stream that allows lines to be pushed
@@ -94,6 +95,11 @@ from a stream."))
       (make-instance class :stream stream)))
   (:documentation "Returns a new {defclass line-stream} created from
 STREAM."))
+
+(defgeneric pop-line (line-input-stream line)
+  (:method ((stream line-input-stream) (line string))
+    (pop (slot-value stream 'line-stack)))
+  (:documentation "Pops one line from {defclass line-input-stream} ."))
 
 (defgeneric push-line (line-input-stream line)
   (:method ((stream line-input-stream) (line string))
@@ -290,11 +296,9 @@ is exhausted the list of chunks will be empty."
                           (values (list chunk) nil)))
                        ((and eol-pos (zerop (- eol-pos offset)))
                         ;; There is a newline in the buffer at the
-                        ;; zeroth position. Make an empty chunk (for
-                        ;; sake of consistency)
-                        (let ((chunk (make-array 0 :element-type 'octet)))
-                          (setf offset (1+ eol-pos))
-                          (values (list chunk) nil)))
+                        ;; zeroth position.
+                        (setf offset (1+ eol-pos))
+                        (values nil nil))
                        ((zerop num-bytes)
                         ;; The buffer is empty
                         (values nil t))
@@ -303,14 +307,12 @@ is exhausted the list of chunks will be empty."
                         ;; chunk and recurse to find the newline
                         (let ((chunk (make-array (- num-bytes offset)
                                                  :element-type 'octet
-                                                 :initial-element 0))
-                              (chunks nil)
-                              (missing-eol-p t))
+                                                 :initial-element 0)))
                           (replace chunk buffer :start2 offset :end2 num-bytes)
                           (fill-buffer)
-                          (multiple-value-setq (chunks missing-eol-p)
-                            (find-eol))
-                          (values (cons chunk chunks) missing-eol-p)))))))
+                          (multiple-value-bind (chunks missing-eol-p)
+                              (find-eol)
+                            (values (cons chunk chunks) missing-eol-p))))))))
       (when (buffer-empty-p)
         (fill-buffer))
       (find-eol))))

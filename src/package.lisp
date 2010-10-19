@@ -187,6 +187,8 @@
      #:line-output-stream
      #:character-line-input-stream
      #:octet-line-input-stream
+     #:line-stack-of
+     #:pop-line
      #:push-line
      #:more-lines-p
      #:find-line
