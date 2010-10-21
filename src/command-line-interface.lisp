@@ -338,16 +338,27 @@ STREAM (which defaults to *ERROR-OUTPUT*).")
            (slot (nth (position name options :key #'name-of :test #'string=)
                       (option-slots-of cli)))
            (option (slot-value cli slot)))
-      (format stream
-              "  --~20a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
-              name (value-type-of option) (required-option-p option)
-              (wrap-string (slot-documentation slot (class-of cli))))))
+      (with-accessors ((type value-type-of) (requiredp required-option-p))
+          option
+        (let ((type-name (if (eql t type)
+                             'boolean
+                             type)))
+          (format stream
+                  "  --~20a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
+                  name type-name requiredp
+                  (wrap-string (slot-documentation slot (class-of cli))))))))
   (:method ((cli cli) (slot symbol) &optional stream)
     (let ((option (slot-value cli slot)))
-      (format stream
-              "  --~20a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
-              (name-of option) (value-type-of option) (required-option-p option)
-              (wrap-string (slot-documentation slot (class-of cli)))))))
+      (with-accessors ((name name-of) (type value-type-of)
+                       (requiredp required-option-p))
+          option
+        (let ((type-name (if (eql t type)
+                             'boolean
+                             type)))
+          (format stream
+                  "  --~20a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
+                  name type-name requiredp
+                  (wrap-string (slot-documentation slot (class-of cli)))))))))
 
 (defgeneric help-message (cli message &optional stream)
   (:documentation "Prints a help MESSAGE and help for each avaliable
