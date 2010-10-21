@@ -23,7 +23,7 @@
   "The separator character used in multi-value arguments.")
 
 (defmacro with-argv (argv &body body)
-  "Executes BODY with ARGV bound to system argv list."
+   "Executes BODY with ARGV bound to system argv list."
   `(let ((,argv (get-system-argv)))
     ,@body))
 
@@ -55,12 +55,14 @@ Key:
                      `(quit-lisp :status ,error-status)))))
     ,@body))
 
-(defmacro with-cli ((argv &key quit error-status error-file) &body body)
-  "Executes BODY within the combined environments of {defmacro WITH-ARGV}
-and {defmacro WITH-BACKTRACE} ."
-  `(with-backtrace (:quit ,quit :error-status ,error-status
-                    ,@(when error-file
-                            `(:error-file ,error-file)))
+(defmacro with-cli ((argv &key quit (error-status 1)) &body body)
+  "Executes BODY within {defmacro WITH-ARGV}, handling any
+{define-condition cli-option-error} s."
+  `(handler-bind ((cli-option-error
+                   (lambda (condition)
+                     (format *error-output* "Error: ~a~%" condition)
+                     ,(when quit
+                            `(quit-lisp :status ,error-status)))))
     (with-argv ,argv
       ,@body)))
 
