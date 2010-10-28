@@ -40,13 +40,13 @@ Key:
   *ERROR-OUTPUT*."
   `(handler-bind
     ((error (lambda (condition)
-              (format *error-output* "Error: ~a~%" condition)
+              (print-error-message condition)
               ,(if error-file
                    `(with-open-file (stream ,error-file
                                      :direction :output
                                      :if-does-not-exist :create
                                      :if-exists :append)
-                      (format stream "Error: ~a~%" condition)
+                      (print-error-message condition)
                       (terpri stream)
                       (write-line "Backtrace:" stream)
                       (print-backtrace condition stream))
@@ -60,7 +60,7 @@ Key:
 {define-condition cli-option-error} s."
   `(handler-bind ((cli-option-error
                    (lambda (condition)
-                     (format *error-output* "Error: ~a~%" condition)
+                     (print-error-message condition)
                      ,(when quit
                             `(quit-lisp :status ,error-status)))))
     (with-argv ,argv
@@ -306,7 +306,9 @@ e.g
 
 (defgeneric option-slot-p (cli slot)
   (:documentation "Returns T if SLOT is an option slot in CLI, or NIL
-otherwise.")
+otherwise. The default implementation returns T, meaning that all
+slots are expected to contain option objects. Overriding this method
+means that slots may be added for other purposes.")
   (:method ((cli cli) (slot symbol))
     t))
 
@@ -363,7 +365,7 @@ STREAM (which defaults to *ERROR-OUTPUT*).")
 (defgeneric help-message (cli message &optional stream)
   (:documentation "Prints a help MESSAGE and help for each avaliable
 option in CLI to STREAM.")
-  (:method ((cli cli) message &optional stream)
+  (:method ((cli cli) (message string) &optional stream)
     (write-line (wrap-string message) stream)
     (terpri stream)
     (write-line "  Options:" stream)
@@ -452,3 +454,6 @@ by CHAR."
         (write-char char out)
         (when (whitespace-char-p char)
           (peek-char t in nil nil))))))
+
+(defun print-error-message (condition &optional (stream *error-output*))
+  (write-line (string-capitalize (format nil "~a" condition) :end 1) stream))

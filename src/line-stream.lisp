@@ -19,7 +19,7 @@
 
 (in-package :uk.co.deoxybyte-io)
 
-(defconstant +octet-buffer-size+ (1- (expt 2 13))
+(defconstant +octet-buffer-size+ 4096
   "Buffer size for {defclass octet-line-input-stream} internal
 buffer.")
 
