@@ -118,7 +118,7 @@ those fields have acceptable values."
 START and END, or NIL if STR is STRING= to NULL-STR between START and
 END."
   (declare (optimize (speed 3)))
-  (declare (type simple-string str null-str))
+  (declare (type (simple-array character (*)) str null-str))
   (let ((end (or end (length str))))
     (if (string= null-str str :start2 start :end2 end)
         nil
@@ -133,7 +133,7 @@ END."
 between START and END, or NIL if STR is STRING= to NULL-STR between
 START and END."
   (declare (optimize (speed 3)))
-  (declare (type simple-string str null-str))
+  (declare (type (simple-array character (*)) str null-str))
   (let ((end (or end (length str))))
     (if (string= null-str str :start2 start :end2 end)
         nil
@@ -148,7 +148,7 @@ START and END."
 START and END, or NIL if STR is STRING= to NULL-STR between START and
 END."
   (declare (optimize (speed 3)))
-  (declare (type simple-string str null-str))
+  (declare (type (simple-array character (*)) str null-str))
   (let ((end (or end (length str))))
     (if (string= null-str str :start2 start :end2 end)
         nil
