@@ -172,13 +172,13 @@ unread data."))
   (%stream-read-sequence stream sequence start end))
 
 (defmethod stream-read-line ((stream character-line-input-stream))
-   (with-slots ((s stream) line-stack)
-       stream
-     (if (null line-stack)
-         (multiple-value-bind (line missing-eol-p)
-             (read-line s nil :eof)
-           (values line missing-eol-p))
-         (pop line-stack))))
+  (with-slots ((s stream) line-stack)
+      stream
+    (if (null line-stack)
+        (multiple-value-bind (line missing-eol-p)
+            (read-line s nil :eof)
+          (values line missing-eol-p))
+        (pop line-stack))))
 
 ;;; octet-line-input-stream methods
 (defmethod stream-element-type ((stream octet-line-input-stream))

@@ -117,33 +117,40 @@ Returns:
 (defmethod external-merge-sort ((in sort-input-stream) (out sort-output-stream)
                                 predicate &key key (buffer-size 100000))
   (declare (optimize (speed 3) (safety 0)))
-  (let* ((merge-streams
-          (loop
-             for stream = (make-merge-stream
-                           in predicate :key key :buffer-size buffer-size)
-             while stream
-             collect stream into streams
-             finally (return (make-array (the fixnum (list-length streams))
-                                         :initial-contents streams))))
-         (key (cond ((null key)
-                     #'identity)
-                    ((functionp key)
-                     key)
-                    (t
-                     (fdefinition key)))))
-    (unwind-protect
-         (loop
-            for elt = (merge-element merge-streams predicate key)
-            while elt
-            count elt into total
-            do (stream-write-element elt out)
-            finally (return (values total (length merge-streams))))
-      (loop
-         for stream across merge-streams
-         do (progn
-              (when (open-stream-p stream)
-                (stream-delete-file stream)
-                (close stream :abort t)))))))
+  (flet ((merge-and-count (streams pred key)
+           (unwind-protect
+                (loop
+                   for elt = (merge-element streams pred key)
+                   while elt
+                   count elt into num-elts
+                   do (stream-write-element elt out)
+                   finally (return num-elts))
+             (loop
+                for stream across streams
+                do (progn
+                     (when (open-stream-p stream)
+                       (stream-delete-file stream)
+                       (close stream :abort t)))))))
+    (let* ((merge-streams
+            (loop
+               for stream = (make-merge-stream
+                             in predicate :key key :buffer-size buffer-size)
+               while stream
+               collect stream into streams
+               finally (return (make-array (the fixnum (list-length streams))
+                                           :initial-contents streams))))
+           (num-streams (length merge-streams))
+           (key (cond ((null key)
+                       #'identity)
+                      ((functionp key)
+                       key)
+                      (t
+                       (fdefinition key)))))
+    
+      (values (if (zerop num-streams)
+                  0
+                  (merge-and-count merge-streams predicate key))
+              num-streams))))
 
 (declaim (inline merge-element))
 (defun merge-element (merge-streams predicate key)
@@ -159,8 +166,7 @@ required by the merge-sort algorithm."
      for y-index from 0 below (length merge-streams)
      for y = (slot-value (svref merge-streams y-index) 'stream-head)
      when (and y (or (null x)
-                     (funcall predicate (funcall key y)
-                              x)))
+                     (funcall predicate (funcall key y) x)))
      do (setf x y
               x-index y-index)
      finally (progn
