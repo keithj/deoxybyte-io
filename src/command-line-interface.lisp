@@ -386,13 +386,16 @@ NIL otherwise.")
   (:method ((option cli-option))
     (eql t (value-type-of option))))
 
-(defun option-value (key parsed-args)
+(defun option-value (key parsed-args &optional (default nil default-supplied-p))
   "Returns the value from alist PARSED-ARGS for the option named by the
 symbol KEY."
-  (check-arguments (member key parsed-args :key #'first)
-                   (key parsed-args)
-                   "there is no value for this key in the parsed arguments")
-  (assocdr key parsed-args))
+  (unless default-supplied-p
+    (check-arguments (member key parsed-args :key #'first)
+                     (key parsed-args)
+                     "there is no value for this key in the parsed arguments"))
+  (if (and (not (assocdr key parsed-args)) default-supplied-p)
+      default
+      (assocdr key parsed-args)))
 
 (defgeneric parse-safely (option value)
   (:documentation "Returns a parsed VALUE of the correct Lisp type for
