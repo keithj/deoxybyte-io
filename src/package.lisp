@@ -129,7 +129,9 @@
 
      ;; CLI definition
      #:cli-error
+     #:cli-option-error
      #:cli-warning
+     #:cli-option-warning
      #:unknown-command
      #:missing-required-option
      #:missing-required-value
