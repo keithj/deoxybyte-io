@@ -22,6 +22,9 @@
 (defparameter *list-separator-char* #\,
   "The separator character used in multi-value arguments.")
 
+(defparameter *cli-error-exit-status* 10
+  "The default non-zero exit code for CLI error exits.")
+
 (defmacro with-argv (argv &body body)
    "Executes BODY with ARGV bound to system argv list."
   `(let ((,argv (get-system-argv)))
@@ -55,10 +58,11 @@ Key:
                      `(quit-lisp :status ,error-status)))))
     ,@body))
 
-(defmacro with-cli ((argv &key quit (error-status 1)) &body body)
+(defmacro with-cli ((argv &key quit (error-status *cli-error-exit-status*))
+                    &body body)
   "Executes BODY within {defmacro WITH-ARGV}, handling any
-{define-condition cli-option-error} s."
-  `(handler-bind ((cli-option-error
+{define-condition cli-error} s."
+  `(handler-bind ((cli-error
                    (lambda (condition)
                      (print-error-message condition)
                      ,(when quit
