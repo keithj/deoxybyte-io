@@ -459,4 +459,5 @@ by CHAR."
           (peek-char t in nil nil))))))
 
 (defun print-error-message (condition &optional (stream *error-output*))
-  (write-line (string-capitalize (format nil "~a" condition) :end 1) stream))
+  (let ((str (format nil "~a" condition)))
+    (write-line (string-capitalize str :end (min 1 (length str))) stream)))
