@@ -122,8 +122,13 @@
      #:ensure-file-exists
      #:pathstring
      #:tmp-pathname
+     #:with-tmp-pathname
+     #:delete-tmp-pathname
+     #:leave-tmp-pathname
      #:make-tmp-directory
      #:with-tmp-directory
+     #:delete-tmp-directory
+     #:leave-tmp-directory
      #:pathname-generator
      #:pathname-extender
 

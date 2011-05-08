@@ -26,20 +26,49 @@
   (make-pathname :directory (pathname-directory *default-tmpdir*))
   "The defaults used to fill in temporary file pathnames.")
 
-(defmacro with-tmp-directory ((directory &key (tmpdir *default-tmpdir*)
-                                         (basename "") (if-exists :error)
-                                         (mode 511))
-                              &body body)
+(defmacro with-tmp-pathname ((pathname &rest rest) &body body)
+  "Executes BODY with DIRECTORY bound to a pathname of a temporary
+file that has been created with the MAKE-TMP-PATHNAME function. If
+BODY executes without error, any file denoted by the temporary
+pathname is deleted. If an error occurs, restarts DELETE-TMP-PATHNAME
+and LEAVE-TMP-PATHNAME are provided to control what happens."
+  `(let ((,pathname (tmp-pathname ,@rest)))
+     (restart-case
+         (multiple-value-prog1
+             (progn
+               ,@body)
+           (when (fad:file-exists-p ,pathname)
+             (delete-file ,pathname)))
+       (delete-tmp-pathname ()
+         :report "Delete temporary pathname"
+         (when (fad:file-exists-p ,pathname)
+           (delete-file ,pathname))
+         ,pathname)
+       (leave-tmp-pathname ()
+         :report "Leave temporary pathname"
+         ,pathname))))
+
+(defmacro with-tmp-directory ((directory &rest rest) &body body)
   "Executes BODY with DIRECTORY bound to a temporary directory that
-has been created with the MAKE-TMP-DIRECTORY function. The temporary
-directory is deleted afterwards."
-  `(let ((,directory (make-tmp-directory :tmpdir ,tmpdir :basename
-                                         ,basename
-                                         :if-exists ,if-exists :mode ,mode)))
-    (unwind-protect
-         (progn
-           ,@body)
-      (fad:delete-directory-and-files ,directory))))
+has been created with the MAKE-TMP-DIRECTORY function. If BODY
+executes without error, the temporary directory is deleted. If an
+error occurs, restarts DELETE-TMP-DIRECTORY and LEAVE-TMP-DIRECTORY
+are provided to control what happens."
+  `(let ((,directory (make-tmp-directory ,@rest)))
+     (restart-case 
+         (multiple-value-prog1
+             (progn
+               ,@body)
+           (when (fad:directory-exists-p ,directory)
+             (fad:delete-directory-and-files ,directory)))
+       (delete-tmp-directory ()
+         :report "Delete temporary directory"
+         (when (fad:directory-exists-p ,directory)
+           (fad:delete-directory-and-files ,directory))
+         ,directory)
+       (leave-tmp-directory ()
+         :report "Leave temporary directory"
+         ,directory))))
 
 (defun absolute-pathname-p (pathname)
   "Returns T if PATHSPEC is a pathname designator for an absolute file
@@ -136,14 +165,15 @@ defaulting to NIL."
                                   :type type)))
 
 (defun make-tmp-directory (&key (tmpdir *default-tmpdir*) (basename "")
-                            (if-exists :error))
+                           (if-exists :error) mode)
   "Creates a new temporary directory and returns its pathname. The new
-directory's pathname is created using {defun make-tmp-pathname} . The
+directory's pathname is created using {defun tmp-pathname} . The
 IF-EXISTS keyword argument determines what happens if a directory by
 that name already exists; options are :error which causes a FILE-ERROR
 to be raised, :supersede which causes the existing directory to be
 deleted and a new, empty one created and NIL where no directory is
 created an NIL is returned to indicate failure."
+  (declare (ignorable mode))
   (let ((pathname (tmp-pathname :tmpdir tmpdir :basename basename)))
     (ecase if-exists
       (:error (if (fad:directory-exists-p pathname)

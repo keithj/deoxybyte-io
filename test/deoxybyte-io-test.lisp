@@ -199,6 +199,57 @@
     (ensure-condition invalid-argument-error
       (make-tmp-directory :tmpdir bad-dir))))
 
+(addtest (deoxybyte-io-tests) with-tmp-directory/1
+  (let ((pathname (with-tmp-directory (tmpdir)
+                    (ensure (fad:directory-exists-p tmpdir))
+                    tmpdir)))
+    (ensure (not (fad:directory-exists-p pathname)))))
+
+(addtest (deoxybyte-io-tests) with-tmp-directory/2
+  (handler-bind ((error (lambda (c)
+                          (declare (ignore c))
+                          (invoke-restart 'leave-tmp-directory))))
+    (let ((pathname (with-tmp-directory (tmpdir)
+                      (error "Error"))))
+      (ensure (fad:directory-exists-p pathname))
+      (fad:delete-directory-and-files pathname))))
+
+(addtest (deoxybyte-io-tests) with-tmp-directory/3
+  (handler-bind ((error (lambda (c)
+                          (declare (ignore c))
+                          (invoke-restart 'delete-tmp-directory))))
+    (let ((pathname (with-tmp-directory (tmpdir)
+                      (error "Error"))))
+      (ensure (not (fad:directory-exists-p pathname))))))
+
+(addtest (deoxybyte-io-tests) with-tmp-pathname/1
+  (with-tmp-pathname (tmpfile)
+    (ensure (pathnamep tmpfile))))
+
+(addtest (deoxybyte-io-tests) with-tmp-pathname/2
+  (handler-bind ((error (lambda (c)
+                          (declare (ignore c))
+                          (invoke-restart 'leave-tmp-pathname))))
+    (let ((pathname (with-tmp-pathname (tmpfile)
+                      (with-open-file (stream tmpfile :direction :output)
+                        stream)
+                      (ensure (fad:file-exists-p tmpfile))
+                      (error "Error"))))
+      (ensure (fad:file-exists-p pathname))
+      (delete-file pathname))))
+
+(addtest (deoxybyte-io-tests) with-tmp-pathname/3
+  (handler-bind ((error (lambda (c)
+                          (declare (ignore c))
+                          (when (find-restart 'delete-tmp-pathname)
+                            (invoke-restart 'delete-tmp-pathname)))))
+    (let ((pathname (with-tmp-pathname (tmpfile)
+                      (with-open-file (stream tmpfile :direction :output)
+                        stream)
+                      (ensure (fad:file-exists-p tmpfile))
+                      (error "Error"))))
+      (ensure (not (fad:file-exists-p pathname))))))
+
 (addtest (deoxybyte-io-tests) ensure-file-exists/1
   (let ((test-file (test-data-file "data/touch_test.txt")))
     (ensure (not (probe-file test-file)))
