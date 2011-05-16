@@ -48,6 +48,20 @@ and LEAVE-TMP-PATHNAME are provided to control what happens."
          :report "Leave temporary pathname"
          ,pathname))))
 
+(defun delete-tmp-pathname (condition)
+  "Invokes the DELETE-TMP-PATHNAME restart, if established."
+  (declare (ignore condition))
+  (let ((restart (find-restart 'delete-tmp-pathname)))
+    (when restart
+      (invoke-restart restart))))
+
+(defun leave-tmp-pathname (condition)
+  "Invokes the LEAVE-TMP-PATHNAME restart, if established."
+  (declare (ignore condition))
+  (let ((restart (find-restart 'leave-tmp-pathname)))
+    (when restart
+      (invoke-restart restart))))
+
 (defmacro with-tmp-directory ((directory &rest rest) &body body)
   "Executes BODY with DIRECTORY bound to a temporary directory that
 has been created with the MAKE-TMP-DIRECTORY function. If BODY
@@ -69,6 +83,20 @@ are provided to control what happens."
        (leave-tmp-directory ()
          :report "Leave temporary directory"
          ,directory))))
+
+(defun delete-tmp-directory (condition)
+  "Invokes the DELETE-TMP-DIRECTORY restart, if established."
+  (declare (ignore condition))
+  (let ((restart (find-restart 'delete-tmp-directory)))
+    (when restart
+      (invoke-restart restart))))
+
+(defun leave-tmp-directory (condition)
+  "Invokes the LEAVE-TMP-DIRECTORY restart, if established."
+  (declare (ignore condition))
+  (let ((restart (find-restart 'leave-tmp-directory)))
+    (when restart
+      (invoke-restart restart))))
 
 (defun absolute-pathname-p (pathname)
   "Returns T if PATHSPEC is a pathname designator for an absolute file

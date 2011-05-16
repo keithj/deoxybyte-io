@@ -206,18 +206,14 @@
     (ensure (not (fad:directory-exists-p pathname)))))
 
 (addtest (deoxybyte-io-tests) with-tmp-directory/2
-  (handler-bind ((error (lambda (c)
-                          (declare (ignore c))
-                          (invoke-restart 'leave-tmp-directory))))
+  (handler-bind ((error #'leave-tmp-directory))
     (let ((pathname (with-tmp-directory (tmpdir)
                       (error "Error"))))
       (ensure (fad:directory-exists-p pathname))
       (fad:delete-directory-and-files pathname))))
 
 (addtest (deoxybyte-io-tests) with-tmp-directory/3
-  (handler-bind ((error (lambda (c)
-                          (declare (ignore c))
-                          (invoke-restart 'delete-tmp-directory))))
+  (handler-bind ((error #'delete-tmp-directory))
     (let ((pathname (with-tmp-directory (tmpdir)
                       (error "Error"))))
       (ensure (not (fad:directory-exists-p pathname))))))
@@ -227,9 +223,7 @@
     (ensure (pathnamep tmpfile))))
 
 (addtest (deoxybyte-io-tests) with-tmp-pathname/2
-  (handler-bind ((error (lambda (c)
-                          (declare (ignore c))
-                          (invoke-restart 'leave-tmp-pathname))))
+  (handler-bind ((error #'leave-tmp-pathname))
     (let ((pathname (with-tmp-pathname (tmpfile)
                       (with-open-file (stream tmpfile :direction :output)
                         stream)
@@ -239,10 +233,7 @@
       (delete-file pathname))))
 
 (addtest (deoxybyte-io-tests) with-tmp-pathname/3
-  (handler-bind ((error (lambda (c)
-                          (declare (ignore c))
-                          (when (find-restart 'delete-tmp-pathname)
-                            (invoke-restart 'delete-tmp-pathname)))))
+  (handler-bind ((error #'delete-tmp-pathname))
     (let ((pathname (with-tmp-pathname (tmpfile)
                       (with-open-file (stream tmpfile :direction :output)
                         stream)
