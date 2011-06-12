@@ -73,9 +73,7 @@
       ;; Extra methods provided by implementations
       #+:sbcl ,@(list :stream-file-position
                       :stream-read-sequence
-                      :stream-write-sequence)
-      #+:lispworks ,@(list :stream-read-sequence
-                           :stream-write-sequence))))
+                      :stream-write-sequence))))
 
 (defmacro define-deoxybyte-io-package ()
   `(defpackage :uk.co.deoxybyte-io
@@ -86,7 +84,6 @@
     (:shadow #:type-of)
     (:import-from
      #+:sbcl :sb-gray
-     #+:lispworks :stream
      #+:ccl :ccl
      ,@(gray-streams-symbols))
     (:export
@@ -152,6 +149,7 @@
      #:define-cli
      #:cli
      #:cli-option
+     #:cli-help
 
      #:option-slot-p
      #:option-slots-of
@@ -166,13 +164,12 @@
      #:required-value-p
      #:value-type-of
      #:value-parser-of
+     #:documentation-of
      #:parse-command-line
 
      #:print-backtrace
      #:quit-lisp
-     #:with-cli
      #:with-argv
-     #:with-backtrace
 
      ,@(gray-streams-symbols)
 

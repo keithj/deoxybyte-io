@@ -22,105 +22,45 @@
 (defparameter *list-separator-char* #\,
   "The separator character used in multi-value arguments.")
 
-(defparameter *cli-error-exit-status* 10
-  "The default non-zero exit code for CLI error exits.")
-
-(defmacro with-argv (argv &body body)
+(defmacro with-argv ((argv) &body body)
    "Executes BODY with ARGV bound to system argv list."
   `(let ((,argv (get-system-argv)))
     ,@body))
-
-(defmacro with-backtrace ((&key quit error-status error-file) &body body)
-  "Executes BODY with an error handler that prints a stack trace when
-an error is encountered.
-
-Key:
-
-- quit (boolean): If T, quit Lisp after printing the stack trace.
-- error-status (integer): The exit code with which to quit Lisp.
-- error-file (filespec): A pathname designator for a file to which the
-  stack trace will be written, instead of printing it to
-  *ERROR-OUTPUT*."
-  `(handler-bind
-    ((error (lambda (condition)
-              (print-error-message condition)
-              ,(if error-file
-                   `(with-open-file (stream ,error-file
-                                     :direction :output
-                                     :if-does-not-exist :create
-                                     :if-exists :append)
-                      (print-error-message condition)
-                      (terpri stream)
-                      (write-line "Backtrace:" stream)
-                      (print-backtrace condition stream))
-                   '(print-backtrace condition *error-output*))
-              ,(when quit
-                     `(quit-lisp :status ,error-status)))))
-    ,@body))
-
-(defmacro with-cli ((argv &key quit (error-status *cli-error-exit-status*))
-                    &body body)
-  "Executes BODY within {defmacro WITH-ARGV}, handling any
-{define-condition cli-error} s."
-  `(handler-bind ((cli-error
-                   (lambda (condition)
-                     (print-error-message condition)
-                     ,(when quit
-                            `(quit-lisp :status ,error-status)))))
-    (with-argv ,argv
-      ,@body)))
 
 #+:sbcl
 (defun get-system-argv ()
   (rest sb-ext:*posix-argv*))
 
-#+:lispworks
-(defun get-system-argv ()
-  (rest *line-arguments-list*))
-
 #+:ccl
 (defun get-system-argv ()
   (rest ccl:*command-line-argument-list*))
 
-#-(or :sbcl :lispworks :ccl)
+#-(or :sbcl :ccl)
 (defun get-system-argv ()
   (error "Not implemented on ~a" (lisp-implementation-type)))
 
 #+:sbcl
-(defun print-backtrace (condition stream)
-  (declare (ignore condition))
-  (sb-debug:backtrace 20 stream))
-
-#+:lispworks
-(defun print-backtrace (condition stream)
-  (declare (ignore condition))
-  (let ((*debug-io* stream))
-    (dbg:with-debugger-stack ()
-      (dbg:bug-backtrace nil))))
+(defun print-backtrace (stream &optional (depth 20))
+  (sb-debug:backtrace depth stream))
 
 #+:ccl
-(defun print-backtrace (condition stream)
-  (declare (ignore condition))
+(defun print-backtrace (stream &optional (depth 20))
   (let ((*debug-io* stream))
-    (ccl:print-call-history :count 20 :detailed-p nil)))
+    (ccl:print-call-history :count depth :detailed-p nil)))
 
-#-(or :sbcl :lispworks :ccl)
-(defun print-backtrace (condition)
+#-(or :sbcl :ccl)
+(defun print-backtrace (stream)
   (error "Not implemented on ~a" (lisp-implementation-type)))
 
 #+:sbcl
 (defun quit-lisp (&key (status 0))
   (sb-ext:quit :unix-status status))
 
-#+:lispworks
-(defun quit-lisp (&key (status 0))
-  (lw:quit :status status))
-
 #+:ccl
 (defun quit-lisp (&key (status 0))
   (ccl:quit status))
 
-#-(or :sbcl :lispworks :ccl)
+#-(or :sbcl :ccl)
 (defun quit-lisp ()
   (error "Not implemented on ~a" (lisp-implementation-type)))
 
@@ -276,7 +216,7 @@ e.g
                         (when (find name matched-args :key #'first)
                           t))
                        ((and (value-parser-of option) value)
-                        (parse-safely option value))
+                        (parse-safely cli option value))
                        (t                 ; plain strings
                         value)))))
            (getopt-style (option)
@@ -294,15 +234,15 @@ e.g
             (with-accessors ((name name-of))
                 option
               (when (find name unmatched-args :test #'string=)
-                (error 'missing-required-value :name name))
+                (error 'missing-required-value :cli cli :name name))
               (when (and (required-option-p option)
                          (not (find name matched-args :key #'first
                                     :test #'string=)))
-                (error 'missing-required-option :name name))))
+                (error 'missing-required-option :cli cli :name name))))
           (dolist (name unmatched-args)
             (if (find name options :key #'name-of :test #'string=)
-                (warn 'unmatched-option :name name)
-                (warn 'unknown-option :name name)))
+                (warn 'unmatched-option :cli cli :name name)
+                (warn 'unknown-option :cli cli :name name)))
           (values (pairlis slots (mapcar (lambda (option)
                                            (parse-arg option matched-args))
                                          options))
@@ -336,35 +276,44 @@ means that slots may be added for other purposes.")
   (:method ((cli cli) (name symbol))
     (slot-value cli name)))
 
+(defgeneric documentation-of (cli &optional name)
+  (:documentation "Returns documentation of CLI or a CLI option
+identified by NAME.")
+  (:method ((cli cli) &optional name)
+    (let ((class (class-of cli)))
+      (if name
+          (let ((slot (etypecase name
+                        (symbol name)
+                        (string (find-option-slot cli name)))))
+            (slot-documentation slot class))
+          (documentation (class-name class) 'type)))))
+
+(defgeneric cli-help (cli &optional stream)
+  (:documentation "Prints the help string for CLI to STREAM (which
+defaults to *ERROR-OUTPUT*). This is usually the class documentation
+string of CLI, plus all of the option help.")
+  (:method ((cli cli) &optional stream)
+    (let ((msg (documentation-of cli)))
+      (help-message cli (or msg "") stream))))
+
 (defgeneric option-help (cli name &optional stream)
   (:documentation "Prints the help string for option NAME to
 STREAM (which defaults to *ERROR-OUTPUT*).")
   (:method ((cli cli) (name string) &optional stream)
-    (let* ((options (options-of cli))
-           (slot (nth (position name options :key #'name-of :test #'string=)
-                      (option-slots-of cli)))
+    (let* ((slot (find-option-slot cli name))
            (option (slot-value cli slot)))
-      (with-accessors ((type value-type-of) (requiredp required-option-p))
-          option
-        (let ((type-name (if (eql t type)
-                             'boolean
-                             type)))
-          (format stream
-                  "  --~20a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
-                  name type-name requiredp
-                  (wrap-string (slot-documentation slot (class-of cli))))))))
+      (format stream
+              "  ~20a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
+              (key-string option) (value-type-string option)
+              (required-option-p option)
+              (wrap-string (documentation-of cli slot)))))
   (:method ((cli cli) (slot symbol) &optional stream)
     (let ((option (slot-value cli slot)))
-      (with-accessors ((name name-of) (type value-type-of)
-                       (requiredp required-option-p))
-          option
-        (let ((type-name (if (eql t type)
-                             'boolean
-                             type)))
-          (format stream
-                  "  --~20a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
-                  name type-name requiredp
-                  (wrap-string (slot-documentation slot (class-of cli)))))))))
+      (format stream
+              "  ~20a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
+              (key-string option) (value-type-string option)
+              (required-option-p option)
+              (wrap-string (documentation-of cli slot))))))
 
 (defgeneric help-message (cli message &optional stream)
   (:documentation "Prints a help MESSAGE and help for each avaliable
@@ -401,15 +350,19 @@ symbol KEY."
       default
       (assocdr key parsed-args)))
 
-(defgeneric parse-safely (option value)
+(defun find-option-slot (cli name)
+  (nth (position name (options-of cli) :key #'name-of :test #'string=)
+       (option-slots-of cli)))
+
+(defgeneric parse-safely (cli option value)
   (:documentation "Returns a parsed VALUE of the correct Lisp type for
 OPTION or raises an {define-condition incompatible-argument} error.")
-  (:method ((option cli-option) value)
+  (:method ((cli cli) (option cli-option) value)
     (handler-case
         (funcall (value-parser-of option) value)
       (parse-error (condition)
         (declare (ignore condition))
-        (error 'incompatible-value :name (name-of option)
+        (error 'incompatible-value :cli cli :name (name-of option)
                :type (value-type-of option) :value value)))))
 
 (defun parse-character (string)
@@ -461,6 +414,14 @@ by CHAR."
         (write-char char out)
         (when (whitespace-char-p char)
           (peek-char t in nil nil))))))
+
+(defun key-string (option)
+  (format nil "--~a" (name-of option)))
+
+(defun value-type-string (option)
+  (string-downcase (symbol-name (if (boolean-option-p option)
+                                    'boolean
+                                    (value-type-of option)))))
 
 (defun print-error-message (condition &optional (stream *error-output*))
   (let ((str (format nil "~a" condition)))
