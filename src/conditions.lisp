@@ -31,11 +31,17 @@
 
 ;;; Command line interface conditions
 (define-condition cli-error (error)
-  ()
+  ((cli :initarg :cli
+        :initform nil
+        :reader cli-of
+        :documentation "The CLI object relevant to the error."))
   (:documentation "The parent type of all CLI error conditions."))
 
 (define-condition cli-warning (warning)
-  ()
+  ((cli :initarg :cli
+        :initform nil
+        :reader cli-of
+        :documentation "The CLI object relevant to the warning."))
   (:documentation "The parent type of all CLI warning conditions."))
 
 (define-condition cli-option-error (cli-error)
@@ -55,8 +61,7 @@
             :reader command-of
             :documentation "The unknown command."))
   (:report (lambda (condition stream)
-             (format stream "Unknown command ~a."
-                     (command-of condition))))
+             (format stream "Unknown command ~a." (command-of condition))))
   (:documentation "An error that is raised when the main command is
 not recognised."))
 
