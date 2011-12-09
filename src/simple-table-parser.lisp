@@ -61,9 +61,9 @@ fields and the validator must then be a function which accepts the
 parsed values of those fields in the same order and returns T when
 those fields have acceptable values."
   (let ((field-count (length fields))
-        (field-names `(list ,@(mapcar #'car fields)))
+        (field-names `,(mapcar #'car fields))
         (field-args (mapcar #'collect-parser-args fields))
-        (constraint-names `(list ,@(mapcar #'car constraints)))
+        (constraint-names `,(mapcar #'car constraints))
         (constraint-args (mapcar #'collect-constraint-args constraints)))
     `(progn
       (defun ,parser-name (line)
@@ -79,7 +79,7 @@ those fields have acceptable values."
                  (cargs (list ,@constraint-args))
                  (parsed-fields
                   (loop
-                     for name in ,field-names
+                     for name in ',field-names
                      for arg-list in fargs
                      for start in field-starts
                      for end in field-ends
@@ -90,7 +90,7 @@ those fields have acceptable values."
                                           start end arg-list)))))
             (let* ((record-constraints
                     (loop
-                       for name in ,constraint-names
+                       for name in ',constraint-names
                        for form in cargs
                        collect (apply #'validate-record
                                       name parsed-fields form)))

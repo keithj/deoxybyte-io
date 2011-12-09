@@ -146,7 +146,6 @@ Returns:
                        key)
                       (t
                        (fdefinition key)))))
-    
       (values (if (zerop num-streams)
                   0
                   (merge-and-count merge-streams predicate key))
