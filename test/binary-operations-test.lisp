@@ -19,9 +19,35 @@
 
 (in-package :uk.co.deoxybyte-io-test)
 
+;; NaN, +Inf and -Inf values serialized by Java (i.e. network byte
+;; order). 
+;; 
+;;  NaN: 7f c0 00 00
+;; +Inf: 7f 80 00 00
+;; -Inf: ff 80 00 00
+;;
+;;  NaN: 7f f8 00 00 00 00 00 00
+;; +Inf: 7f f0 00 00 00 00 00 00
+;; -Inf: ff f0 00 00 00 00 00 00 
+
+(defvar *single-float-nan-bytes* '(#x7f #xc0 #x00 #x00)
+  "NaN serialized by Java.")
+(defvar *single-float-positive-infinity-bytes* '(#x7f #x80 #x00 #x00)
+  "+Inf serialized by Java.")
+(defvar *single-float-negative-infinity-bytes* '(#xff #x80 #x00 #x00)
+  "-Inf serialized by Java.")
+
+(defvar *double-float-nan-bytes* '(#x7f #xf8 #x00 #x00 #x00 #x00 #x00 #x00)
+  "NaN serialized by Java.")
+(defvar *double-float-positive-infinity-bytes*
+  '(#x7f #xf0 #x00 #x00 #x00 #x00 #x00 #x00)
+  "+Inf serialized by Java.")
+(defvar *double-float-negative-infinity-bytes*
+  '(#xff #xf0 #x00 #x00 #x00 #x00 #x00 #x00)
+  "-Inf serialized by Java.")
+
 (defun make-byte-array (bytes)
-  (make-array (length bytes) :element-type '(unsigned-byte 8)
-              :initial-contents bytes))
+  (make-array (length bytes) :element-type 'octet :initial-contents bytes))
 
 (defun test-round-trip-int (num-bytes encoder decoder &optional signed)
   (let ((bytes (make-byte-array (loop
@@ -70,6 +96,43 @@
     (ensure (= -1 (decode-int16be bytes 0)))
     (ensure (= -8 (decode-int16be bytes 2)))))
 
+(addtest (deoxybyte-io-tests) decode-float32-le/1
+  (mapc (lambda (bytes result)
+          (ensure (eql result (decode-float32le (reverse bytes)))))
+        (mapcar #'make-byte-array
+                (list *single-float-nan-bytes*
+                      *single-float-positive-infinity-bytes*
+                      *single-float-negative-infinity-bytes*))
+        '(:not-a-number :positive-infinity :negative-infinity)))
+
+(addtest (deoxybyte-io-tests) decode-float32-be/1
+  (mapc (lambda (bytes result)
+          (ensure (eql result (decode-float32be bytes))))
+        (mapcar #'make-byte-array
+                (list *single-float-nan-bytes*
+                      *single-float-positive-infinity-bytes*
+                      *single-float-negative-infinity-bytes*))
+        '(:not-a-number :positive-infinity :negative-infinity)))
+
+(addtest (deoxybyte-io-tests) decode-float64-le/1
+  (mapc (lambda (bytes result)
+          (ensure (eql result (decode-float64le (reverse bytes)))))
+        (mapcar #'make-byte-array
+                (list *double-float-nan-bytes*
+                      *double-float-positive-infinity-bytes*
+                      *double-float-negative-infinity-bytes*))
+        '(:not-a-number :positive-infinity :negative-infinity)))
+
+(addtest (deoxybyte-io-tests) decode-float64-be/1
+  (mapc (lambda (bytes result)
+          (ensure (eql result (decode-float64be bytes))))
+        (mapcar #'make-byte-array
+                (list *double-float-nan-bytes*
+                      *double-float-positive-infinity-bytes*
+                      *double-float-negative-infinity-bytes*))
+        '(:not-a-number :positive-infinity :negative-infinity)))
+
+
 (addtest (deoxybyte-io-tests) round-trip-unsigned-int64-le/1
   (ensure (test-round-trip-int 8 #'encode-int64le #'decode-int64le)))
 
@@ -114,7 +177,15 @@
   (ensure (test-round-trip-int 1 #'encode-int8be #'decode-int8be t)))
 
 (addtest (deoxybyte-io-tests) round-trip-ieee-float32/1
-  (ensure (test-round-trip-float 4 #'encode-ieee-float32 #'decode-ieee-float32 t)))
+  (ensure (test-round-trip-float 4 #'encode-ieee-float32
+                                 #'decode-ieee-float32 t))
+  (mapcar (lambda (n)
+            (ensure (eql n (decode-ieee-float32 (encode-ieee-float32 n)))))
+          '(:not-a-number :positive-infinity :negative-infinity)))
 
 (addtest (deoxybyte-io-tests) round-trip-ieee-float64/1
-  (ensure (test-round-trip-float 4 #'encode-ieee-float64 #'decode-ieee-float64 t)))
+  (ensure (test-round-trip-float 4 #'encode-ieee-float64
+                                 #'decode-ieee-float64 t))
+  (mapcar (lambda (n)
+            (ensure (eql n (decode-ieee-float64 (encode-ieee-float64 n)))))
+          '(:not-a-number :positive-infinity :negative-infinity)))

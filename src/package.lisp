@@ -246,10 +246,10 @@
      #:decode-float64le
      #:decode-float32le
 
-     #:encode-float64le
+     #:encode-float64be
      #:encode-float32be
 
-     #:decode-float64le
+     #:decode-float64be
      #:decode-float32be
 
      #:define-integer-encoder
