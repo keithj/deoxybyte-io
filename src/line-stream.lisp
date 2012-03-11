@@ -160,12 +160,6 @@ unread data."))
 (defmethod stream-clear-input ((stream character-line-input-stream))
   (setf (slot-value stream 'line-stack) nil))
 
-#+(or :sbcl :ccl)
-(defmethod stream-read-sequence ((stream character-line-input-stream)
-                                 sequence &optional (start 0) end)
-  (let ((end (or end (length sequence))))
-    (%stream-read-sequence stream sequence start end)))
-
 (defmethod stream-read-line ((stream character-line-input-stream))
   (with-slots ((s stream) line-stack)
       stream
@@ -198,12 +192,6 @@ unread data."))
           num-bytes 0
           line-stack ())))
 
-#+(or :sbcl :ccl)
-(defmethod stream-read-sequence ((stream octet-line-input-stream)
-                                 sequence &optional (start 0) end)
-  (let ((end (or end (length sequence))))
-    (%stream-read-sequence stream sequence start end)))
-
 (defmethod stream-read-line ((stream octet-line-input-stream))
   (declare (optimize (speed 3)))
   (flet ((build-string (chunks) ; this is 3x faster than with-output-to-string
@@ -232,12 +220,6 @@ unread data."))
           (pop line-stack)))))
 
 ;;; line-output-stream methods
-#+(or :sbcl :ccl)
-(defmethod stream-write-sequence ((stream line-output-stream)
-                                  sequence &optional (start 0) end)
-  (let ((end (or end (length sequence))))
-    (%stream-write-sequence stream sequence start end)))
-
 (defgeneric stream-write-line (string stream &optional start end)
   (:method ((str string) (stream character-line-output-stream)
             &optional (start 0) end)

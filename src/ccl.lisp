@@ -1,5 +1,5 @@
 ;;;
-;;; Copyright (c) 2009-2011 Keith James. All rights reserved.
+;;; Copyright (c) 2012 Keith James. All rights reserved.
 ;;;
 ;;; This file is part of deoxybyte-io.
 ;;;
@@ -18,3 +18,24 @@
 ;;;
 
 (in-package :uk.co.deoxybyte-io)
+
+;;; command-line-interface
+(defun get-system-argv ()
+  (rest ccl:*command-line-argument-list*))
+
+(defun print-backtrace (stream &optional (depth 20))
+  (let ((*debug-io* stream))
+    (ccl:print-call-history :count depth :detailed-p nil)))
+
+(defun quit-lisp (&key (status 0))
+  (ccl:quit status))
+
+;;; environment
+(defun environment-variable (variable-name)
+  "Returns the string value of VARIABLE-NAME, or NIL."
+  (ccl:getenv variable-name))
+
+(defun (setf environment-variable) (value variable-name)
+  "Sets the value of VARIABLE-NAME to VALUE, which maye be a string or
+a symbol."
+  (ccl:setenv variable-name value))

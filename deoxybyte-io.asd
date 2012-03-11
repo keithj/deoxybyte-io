@@ -25,7 +25,7 @@
 
 (defsystem deoxybyte-io
     :name "deoxybyte-io"
-    :version "0.12.0"
+    :version "0.12.1"
     :author "Keith James"
     :licence "GPL v3"
     :in-order-to ((test-op (load-op :deoxybyte-io :deoxybyte-io-test)))
@@ -50,7 +50,10 @@
                            (:file "files-and-directories")
                            (:file "simple-table-parser")
                            (:file "external-merge-sort")
-                           (:file "external-line-sort")))
+                           (:file "external-line-sort")
+                           #+:ccl (:file "ccl")
+                           #+:sbcl (:file "sbcl")
+                           #-(or :ccl :sbcl) (:file "default")))
      (:lift-test-config :deoxybyte-io-test
                         :target-system :deoxybyte-io)
      (:cldoc-config :deoxybyte-io-doc

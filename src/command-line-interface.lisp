@@ -27,43 +27,6 @@
   `(let ((,argv (get-system-argv)))
     ,@body))
 
-#+:sbcl
-(defun get-system-argv ()
-  (rest sb-ext:*posix-argv*))
-
-#+:ccl
-(defun get-system-argv ()
-  (rest ccl:*command-line-argument-list*))
-
-#-(or :sbcl :ccl)
-(defun get-system-argv ()
-  (error "Not implemented on ~a" (lisp-implementation-type)))
-
-#+:sbcl
-(defun print-backtrace (stream &optional (depth 20))
-  (sb-debug:backtrace depth stream))
-
-#+:ccl
-(defun print-backtrace (stream &optional (depth 20))
-  (let ((*debug-io* stream))
-    (ccl:print-call-history :count depth :detailed-p nil)))
-
-#-(or :sbcl :ccl)
-(defun print-backtrace (stream)
-  (error "Not implemented on ~a" (lisp-implementation-type)))
-
-#+:sbcl
-(defun quit-lisp (&key (status 0))
-  (sb-ext:quit :unix-status status))
-
-#+:ccl
-(defun quit-lisp (&key (status 0))
-  (ccl:quit status))
-
-#-(or :sbcl :ccl)
-(defun quit-lisp ()
-  (error "Not implemented on ~a" (lisp-implementation-type)))
-
 (defmacro define-cli (name direct-superclasses option-specs &rest options)
   "Defines a new CLI class NAME.
 
