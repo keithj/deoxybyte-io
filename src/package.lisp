@@ -204,6 +204,11 @@
      #:default-float-parser
 
      ;; Binary operations
+     #:encode-uint64le
+     #:encode-uint32le
+     #:encode-uint16le
+     #:encode-uint8le
+
      #:encode-int64le
      #:encode-int32le
      #:encode-int16le
@@ -218,6 +223,11 @@
      #:decode-int32le
      #:decode-int16le
      #:decode-int8le
+
+     #:encode-uint64be
+     #:encode-uint32be
+     #:encode-uint16be
+     #:encode-uint8be
 
      #:encode-int64be
      #:encode-int32be

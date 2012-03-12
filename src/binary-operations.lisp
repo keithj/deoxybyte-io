@@ -19,7 +19,8 @@
 
 (in-package :uk.co.deoxybyte-io)
 
-(defmacro define-integer-encoder (name &key (bytes 1) (order :little-endian))
+(defmacro define-integer-encoder (name &key (bytes 1) (order :little-endian)
+                                  signed)
   "Defines a function NAME with two mandatory arguments, an integer
 and a simple-array of unsigned-byte 8, and one optional argument, a
 fixnum index in that array that defaults to 0. The function returns
@@ -63,6 +64,10 @@ Key:
         (declare (type simple-octet-vector buffer)
                  (type vector-index index)
                  (type ,int-type value))
+        ,@(unless signed
+                  `((check-arguments
+                     (not (minusp value)) (value)
+                     "cannot store a negative number as unsigned")))
         (setf ,@(loop
                    for i from 0 below bytes
                    for shift in byte-shifts
@@ -186,10 +191,15 @@ Key:
                   bytes (string-downcase (symbol-name order)))
          (,float-decoder (,int-decoder buffer index))))))
 
-(define-integer-encoder encode-int64le :bytes 8 :order :little-endian)
-(define-integer-encoder encode-int32le :bytes 4 :order :little-endian)
-(define-integer-encoder encode-int16le :bytes 2 :order :little-endian)
-(define-integer-encoder encode-int8le :bytes 1 :order :little-endian)
+(define-integer-encoder encode-uint64le :bytes 8 :order :little-endian)
+(define-integer-encoder encode-uint32le :bytes 4 :order :little-endian)
+(define-integer-encoder encode-uint16le :bytes 2 :order :little-endian)
+(define-integer-encoder encode-uint8le :bytes 1 :order :little-endian)
+
+(define-integer-encoder encode-int64le :bytes 8 :order :little-endian :signed t)
+(define-integer-encoder encode-int32le :bytes 4 :order :little-endian :signed t)
+(define-integer-encoder encode-int16le :bytes 2 :order :little-endian :signed t)
+(define-integer-encoder encode-int8le :bytes 1 :order :little-endian :signed t)
 
 (define-integer-decoder decode-uint64le :bytes 8 :order :little-endian)
 (define-integer-decoder decode-uint32le :bytes 4 :order :little-endian)
@@ -201,10 +211,15 @@ Key:
 (define-integer-decoder decode-int16le :bytes 2 :order :little-endian :signed t)
 (define-integer-decoder decode-int8le :bytes 1 :order :little-endian :signed t)
 
-(define-integer-encoder encode-int64be :bytes 8 :order :big-endian)
-(define-integer-encoder encode-int32be :bytes 4 :order :big-endian)
-(define-integer-encoder encode-int16be :bytes 2 :order :big-endian)
-(define-integer-encoder encode-int8be :bytes 1 :order :big-endian)
+(define-integer-encoder encode-uint64be :bytes 8 :order :big-endian)
+(define-integer-encoder encode-uint32be :bytes 4 :order :big-endian)
+(define-integer-encoder encode-uint16be :bytes 2 :order :big-endian)
+(define-integer-encoder encode-uint8be :bytes 1 :order :big-endian)
+
+(define-integer-encoder encode-int64be :bytes 8 :order :big-endian :signed t)
+(define-integer-encoder encode-int32be :bytes 4 :order :big-endian :signed t)
+(define-integer-encoder encode-int16be :bytes 2 :order :big-endian :signed t)
+(define-integer-encoder encode-int8be :bytes 1 :order :big-endian :signed t)
 
 (define-integer-decoder decode-uint64be :bytes 8 :order :big-endian)
 (define-integer-decoder decode-uint32be :bytes 4 :order :big-endian)
