@@ -21,25 +21,23 @@
 
 ;;; command-line-interface
 (defun get-system-argv ()
-  (error "Not implemented on ~a" (lisp-implementation-type)))
+  (error "GET-SYSTEM-ARGV not supported on this Lisp implementation."))
 
 (defun print-backtrace (stream)
-  (error "Not implemented on ~a" (lisp-implementation-type)))
+  (error "PRINT-BACKTRACE not supported on this Lisp implementation."))
 
 (defun quit-lisp ()
-  (error "Not implemented on ~a" (lisp-implementation-type)))
+  (error "QUIT-LISP not supported on this Lisp implementation."))
 
 ;;; environment
 
 (defun environment-variable (variable-name)
   "Returns the string value of VARIABLE-NAME, or NIL."
   (declare (ignore variable-name))
-  (error "Not implemented on ~a" (lisp-implementation-type)))
+  (error "ENVIRONMENT-VARIABLE not supported on this Lisp implementation."))
 
 (defun (setf environment-variable) (value variable-name)
   "Sets the value of VARIABLE-NAME to VALUE, which maye be a string or
 a symbol."
   (declare (ignore value variable-name))
-  (error "Not implemented on ~a" (lisp-implementation-type)))
-
-;;; line-stream
+  (error "ENVIRONMENT-VARIABLE not supported on this Lisp implementation."))
