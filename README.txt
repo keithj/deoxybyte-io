@@ -13,14 +13,12 @@ transfer of data between Lisp and its environment. It includes:
 
 Installation
 
-deoxybyte-io uses ASDF for system definition. Copy or symlink
-deoxybyte-io.asd (and optionally deoxybyte-io-test.asd) to your
-asdf:*central-registry* and load deoxybyte-io with the asdf:operate
-function:
+deoxybyte-io uses ASDF for system definition. Install as described in
+the ASDF documentation and then load:
 
- (asdf:operate 'asdf:load-op :deoxybyte-io)
+ (asdf:load-system :deoxybyte-io)
 
-or with the equivalent deoxybyte-systems:load-system function:
+Alternatively, use the equivalent deoxybyte-systems:load-system function:
 
  (dxs:load-system :deoxybyte-io)
 
@@ -28,11 +26,11 @@ or with the equivalent deoxybyte-systems:load-system function:
 Tests
 
 To run the unit and regression tests you need to have LIFT
-installed. Run the tests with the asdf:operate function:
+installed. Run the tests:
 
- (asdf:operate 'asdf:test-op :deoxybyte-io)
+ (asdf:test-system :deoxybyte-io)
 
-or with the equivalent deoxybyte-systems:test-system function:
+Alternatively, use the equivalent deoxybyte-systems:test-system function:
 
  (dxs:test-system :deoxybyte-io)
 
