@@ -46,7 +46,7 @@ instance.
 
   Rest:
 
-  - cl-option instance initargs 
+  - cl-option instance initargs
 
   Key:
 
@@ -66,7 +66,7 @@ e.g.
 ;;; (define-cli example-cli (cli)
 ;;;   ((a \"a\" :required-option t :value-type 'string
 ;;;       :documentation \"Required option A.\")
-;;;    (b \"b\" :required-option t :value-type 'integer
+;;;    (b \"b\" :required-option nil :value-type 'integer :value-default 99
 ;;;       :documentation \"Required option D.\"))
 ;;;   (:documentation \"An example CLI class definition.\"))"
   `(defclass ,name ,direct-superclasses
@@ -111,15 +111,25 @@ value).")
    (value-parser :initform nil
                  :reader value-parser-of
                  :documentation "A value parser function for option
-that is capable of parsing a string to the correct type"))
+that is capable of parsing a string to the correct type.")
+   (value-default ::initform nil
+                  :initarg :value-default
+                  :reader value-default-of
+                  :documentation "A default value of the required value-type."))
   (:documentation "The base class of all command line options."))
 
 (defmethod initialize-instance :after ((option cli-option) &key)
-  (with-slots (required-option value-type value-parser)
+  (with-slots (required-option value-type value-parser value-default)
       option
     (check-arguments (not (and required-option (eql t value-type)))
                      (required-option value-type)
                      "a boolean type is incompatible with a required option")
+    (check-arguments (not (and (eql t value-type) value-default))
+                     (required-option value-type)
+                     "a boolean type is incompatible with a default value")
+    (check-arguments (not (and required-option value-default))
+                     (required-option value-default)
+                     "a default value is incompatible with a required option")
     (setf value-parser (ecase value-type
                          (string nil)
                          (character #'parse-character)
@@ -137,10 +147,11 @@ that is capable of parsing a string to the correct type"))
 
 (defmethod print-object ((option cli-option) stream)
   (print-unreadable-object (option stream :type t)
-    (with-slots (name required-option value-type)
+    (with-slots (name required-option value-type value-default)
         option
-      (format stream "~a, ~:[required~;not required~], type: ~a"
-              name required-option value-type))))
+      (format stream "~a, ~:[required~;not required~], ~
+type: ~a~@[, default: ~a~]"
+              name required-option value-type value-default))))
 
 (defgeneric parse-command-line (cli arglist)
   (:documentation "Parses a system command line to create a mapping of
@@ -165,30 +176,35 @@ e.g
 ;;;   ((a \"a\" :required-option t :value-type 'string
 ;;;       :documentation \"Required option A.\")
 ;;;    (b \"b\" :required-option t :value-type 'integer
-;;;       :documentation \"Required option D.\"))
+;;;       :documentation \"Required option D.\")
+;;;   (c \"c\" :required-option nil :value-type 'string :default \"foo\"
+;;;       :documentation \"Option C.\"))
 ;;;   (:documentation \"An example CLI class definition.\"))
 
 ;;; (parse-command-line (make-instance 'example-cli)
 ;;;                     (list \"--a\" \"aaa\" \"--b\" \"1\")))")
   (:method ((cli cli) arglist)
-    (flet ((parse-arg (option matched-args)
-             (with-accessors ((name name-of))
-                 option
-               (let ((value (assocdr name matched-args :test #'string=)))
-                 (cond ((boolean-option-p option)
-                        (when (find name matched-args :key #'first)
-                          t))
-                       ((and (value-parser-of option) value)
-                        (parse-safely cli option value))
-                       (t                 ; plain strings
-                        value)))))
-           (getopt-style (option)
+    (flet ((getopt-style (option)
              (list (name-of option) (cond ((required-value-p option)
                                            :required)
                                           ((eql t (value-type-of option))
                                            :none)
                                           (t
-                                           :optional)))))
+                                           :optional))))
+           (parse-arg (option matched-args)
+             (with-accessors ((name name-of))
+                 option
+               (let ((str (assocdr name matched-args :test #'string=))
+                     (default (value-default-of option)))
+                 (cond ((boolean-option-p option)
+                        (when (find name matched-args :key #'first)
+                          t))
+                       ((and (null str) default) ; default supplied
+                        default)
+                       ((and str (value-parser-of option))
+                        (parse-safely cli option str))
+                       (t               ; plain strings
+                        str))))))
       (let* ((slots (option-slots-of cli))
              (options (options-of cli)))
         (multiple-value-bind (remaining-args matched-args unmatched-args)
@@ -244,12 +260,13 @@ means that slots may be added for other purposes.")
 identified by NAME.")
   (:method ((cli cli) &optional name)
     (let ((class (class-of cli)))
-      (if name
-          (let ((slot (etypecase name
-                        (symbol name)
-                        (string (find-option-slot cli name)))))
-            (slot-documentation slot class))
-          (documentation (class-name class) 'type)))))
+      (or (if name
+              (let ((slot (etypecase name
+                            (symbol name)
+                            (string (find-option-slot cli name)))))
+                (slot-documentation slot class))
+              (documentation (class-name class) 'type))
+          "No documentation available."))))
 
 (defgeneric cli-help (cli &optional stream)
   (:documentation "Prints the help string for CLI to STREAM (which
@@ -266,16 +283,16 @@ STREAM (which defaults to *ERROR-OUTPUT*).")
     (let* ((slot (find-option-slot cli name))
            (option (slot-value cli slot)))
       (format stream
-              "  ~20a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
+              "  ~20a <~@[~a, ~]~:[optional~;required~]~@[, default ~a~]>~%    ~a~%"
               (key-string option) (value-type-string option)
-              (required-option-p option)
+              (required-option-p option) (value-default-of option)
               (wrap-string (documentation-of cli slot)))))
   (:method ((cli cli) (slot symbol) &optional stream)
     (let ((option (slot-value cli slot)))
       (format stream
-              "  ~20a <~@[~a, ~]~:[optional~;required~]>~%    ~a~%"
+              "  ~20a <~@[~a, ~]~:[optional~;required~]~@[, default ~a~]>~%    ~a~%"
               (key-string option) (value-type-string option)
-              (required-option-p option)
+              (required-option-p option) (value-default-of option)
               (wrap-string (documentation-of cli slot))))))
 
 (defgeneric help-message (cli message &optional stream)
@@ -313,9 +330,11 @@ symbol KEY."
       default
       (assocdr key parsed-args)))
 
-(defun find-option-slot (cli name)
-  (nth (position name (options-of cli) :key #'name-of :test #'string=)
-       (option-slots-of cli)))
+(defgeneric find-option-slot (cli name)
+  (:method ((cli cli) (name string))
+    (nth (position name (options-of cli) :key #'name-of :test #'string=)
+         (option-slots-of cli)))
+  (:documentation "Returns the slot named NAME from CLI."))
 
 (defgeneric parse-safely (cli option value)
   (:documentation "Returns a parsed VALUE of the correct Lisp type for

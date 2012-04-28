@@ -164,6 +164,7 @@
      #:required-value-p
      #:value-type-of
      #:value-parser-of
+     #:value-default-of
      #:documentation-of
      #:parse-command-line
 

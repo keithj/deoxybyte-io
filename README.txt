@@ -8,7 +8,13 @@ transfer of data between Lisp and its environment. It includes:
 - Command line interface definition utilities
 - Stream classes and methods
 - Tabular text parsing
-- Binary encoding and decoding
+- Binary encoding and decoding *
+
+* Nathan Froyd has released nibbles
+(https://github.com/froydnj/nibbles) which implements octet-vector
+operations similar to those in this system, only optimized for
+efficiency. I'll consider replacing my implementations with a shim to
+nibbles, or calling nibbles directly.
 
 
 Installation

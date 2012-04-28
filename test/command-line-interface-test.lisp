@@ -45,6 +45,12 @@
 (define-cli test-boolean-cli (cli)
   ((a "a" :required-option nil :value-type t)))
 
+(define-cli test-value-default-cli (cli)
+  ((a "a" :required-option nil :value-type 'string :value-default "foo"
+      :documentation "Option A.")
+   (b "b" :required-option nil :value-type 'integer :value-default 99
+      :documentation "Option B.")))
+
 (addtest (deoxybyte-io-tests) option-slot-p/1
   (let ((cli (make-instance 'test-cli)))
     (ensure (every (lambda (slot)
@@ -132,3 +138,18 @@
     (ensure (equal "aaa" (option-value 'a parsed)))
     (ensure-condition invalid-argument-error
       (option-value 'w parsed))))
+
+(addtest (deoxybyte-io-tests) default-value/1
+  (let ((parsed (parse-command-line (make-instance 'test-value-default-cli)
+                                    (list "--a" "aaa"
+                                          "--b" "1"))))
+    (ensure (equal "aaa" (option-value 'a parsed)))
+    (ensure (= 1 (option-value 'b parsed)))))
+
+(addtest (deoxybyte-io-tests) default-value/2
+  (let* ((cli (make-instance 'test-value-default-cli))
+         (parsed (parse-command-line cli nil)))
+    (ensure (equal (value-default-of (option-of cli "a"))
+                   (option-value 'a parsed)))
+    (ensure (= (value-default-of (option-of cli "b"))
+               (option-value 'b parsed)))))
