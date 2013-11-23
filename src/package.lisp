@@ -85,6 +85,7 @@
     (:import-from
      #+:sbcl :sb-gray
      #+:ccl :ccl
+     #+:lispworks :stream
      ,@(gray-streams-symbols))
     (:export
      ;; IO conditions
