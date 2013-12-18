@@ -27,7 +27,7 @@
   (sb-debug:backtrace depth stream))
 
 (defun quit-lisp (&key (status 0))
-  (sb-ext:quit :unix-status status))
+  (sb-ext:exit :code status))
 
 ;;; environment
 (defun environment-variable (variable-name)

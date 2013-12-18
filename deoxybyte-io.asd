@@ -25,13 +25,14 @@
 
 (defsystem deoxybyte-io
     :name "deoxybyte-io"
-    :version "0.14.0"
+    :version "0.15.0"
     :author "Keith James"
     :licence "GPL v3"
-    :in-order-to ((test-op (load-op :deoxybyte-io :deoxybyte-io-test)))
-    :depends-on (:deoxybyte-systems
+    :in-order-to ((test-op (load-op :deoxybyte-io :deoxybyte-io-test))
+                  (doc-op (load-op :deoxybyte-io :cldoc)))
+    :depends-on ((:version :deoxybyte-systems "1.0.0")
                  (:version :cl-fad "0.6.2")
-                 (:version :deoxybyte-utilities "0.9.0")
+                 (:version :deoxybyte-utilities "0.11.0")
                  (:version :getopt "1.0"))
     :components
     ((:module :core
@@ -53,9 +54,9 @@
                            (:file "external-line-sort")
                            #+:ccl (:file "ccl")
                            #+:sbcl (:file "sbcl")
-                           #-(or :ccl :sbcl) (:file "default")))
-     (:lift-test-config :deoxybyte-io-test
-                        :target-system :deoxybyte-io)
-     (:cldoc-config :deoxybyte-io-doc
-                    :target-system :deoxybyte-io
-                    :pathname "doc/html/")))
+                           #-(or :ccl :sbcl) (:file "default"))))
+     :perform (test-op :after (op c)
+                       (maybe-run-lift-tests :deoxybyte-io
+                                             "deoxybyte-io-test.config"))
+     :perform (doc-op :after (op c)
+                      (maybe-build-cldoc-docs :deoxybyte-io "doc/html")))
